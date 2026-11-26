@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1216">
+<meta name="format-detection" content="telephone=no">
+<title>ORBIT 모바일 – 설비 이상 대응 지원 (가상 시연)</title>
+<script>document.documentElement.className+=' js';try{if(sessionStorage.getItem('orbit.m.boot')==='1')document.documentElement.className+=' no-loader';}catch(e){}</script>
+<style>
+  :root{
+    --bg:#14181e; --panel:#1c2129; --panel2:#232933; --panel3:#2a313c;
+    --line:#333b47; --line2:#465061;
+    --ink:#e8ebef; --sub:#9aa5b3; --dim:#6f7a88;
+    --accent:#4c9be8;
+    --red:#e5484d;   --red-d:#b3261e;   --red-bg:#2c1a1d;   --red-line:#7a2a2e;
+    --amber:#f5a524; --amber-d:#c98200; --amber-bg:#2c2416; --amber-line:#7a5a1c;
+    --blue:#3b82f6;  --blue-d:#1f5fbf;  --blue-bg:#18233a;  --blue-line:#2c4f8a;
+    --green:#30a46c;
+    --font:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);overflow:hidden;overscroll-behavior:none}
+  body{font-family:var(--font);color:var(--ink);font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-font-smoothing:antialiased}
+  button{font:inherit;color:inherit;touch-action:manipulation}
+  input{font:inherit}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  svg.ic{width:1em;height:1em;flex:none;display:inline-block;vertical-align:-0.15em}
+  [hidden]{display:none !important}
+  .nojs{flex:none;padding:10px 12px;background:var(--amber);color:#1a1200;font-size:14px;font-weight:800;line-height:1.45}
+  .nojs b{display:block;font-size:15.5px}
+  html.app-ok .nojs{display:none}
+
+  /* ===== 앱 틀: 화면 높이에 고정, 안쪽만 스크롤 ===== */
+  #app{position:fixed;top:0;bottom:0;left:0;right:0;max-width:640px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+
+  /* 상단 바 */
+  .top{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top,0px));background:#0f1216;border-bottom:1px solid var(--line)}
+  .logo{height:28px;width:auto;display:block}
+  .hbtns{margin-left:auto;display:flex;gap:6px}
+  .hbtn{min-height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);background:var(--panel2);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .hbtn:active{background:var(--panel3)}
+
+  /* 상태 표시 */
+  .status{flex:none;padding:7px 12px 8px;background:var(--panel);border-bottom:1px solid var(--line);transition:background .2s}
+  .st-row{display:flex;align-items:center;gap:9px}
+  .lamp{width:12px;height:12px;border-radius:50%;background:var(--green);flex:none}
+  #alarmText{font-size:16.5px;font-weight:800;line-height:1.3}
+  .clock{margin-left:auto;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--sub)}
+  .st-meta{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:3px;font-size:12.5px;color:var(--sub)}
+  .st-meta b{color:var(--ink);font-family:var(--mono);font-weight:700}
+  body.st-danger .status{background:var(--red-d)}
+  body.st-caution .status{background:var(--amber-d)}
+  body.st-general .status{background:var(--blue-d)}
+  body.st-ok .status{background:#1d6b47}
+  body.st-danger .lamp,body.st-caution .lamp,body.st-general .lamp,body.st-ok .lamp{background:#fff}
+  body.st-danger .lamp{animation:blink 1s steps(2,start) infinite}
+  body.estop .lamp{animation:blink .5s steps(2,start) infinite}
+  body.st-danger .st-meta,body.st-caution .st-meta,body.st-general .st-meta,body.st-ok .st-meta,
+  body.st-danger .clock,body.st-caution .clock,body.st-general .clock,body.st-ok .clock{color:rgba(255,255,255,.85)}
+  body.st-caution #alarmText,body.st-caution .st-meta b{color:#fff}
+  body.locked #alarmText::after{content:" · 잠금";font-weight:800}
+  @keyframes blink{to{visibility:hidden}}
+
+  /* 탭 */
+  .tabs{flex:none;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel2);border-bottom:1px solid var(--line)}
+  .tab{position:relative;min-height:46px;border:none;background:none;border-bottom:3px solid transparent;color:var(--sub);font-size:15px;font-weight:800;cursor:pointer}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+  .badge{display:inline-block;min-width:19px;height:19px;margin-left:5px;padding:0 5px;border-radius:10px;background:var(--red);color:#fff;font-size:11.5px;line-height:19px;font-weight:800;vertical-align:1px}
+
+  /* 화면(탭 내용) */
+  .views{flex:1;min-height:0;position:relative}
+  .view{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 12px 92px}
+
+  /* 상황 선택 */
+  .hint{margin:0 0 10px;font-size:14px;color:var(--sub)}
+  .sec-t{margin:16px 0 8px;font-size:13.5px;font-weight:800;color:var(--sub);display:flex;align-items:center;gap:7px}
+  .sec-t:first-of-type{margin-top:4px}
+  .sec-t .dot{width:9px;height:9px;border-radius:50%}
+  .sec-t.danger{color:#ff9a9e} .sec-t.danger .dot{background:var(--red)}
+  .sec-t.caution{color:var(--amber)} .sec-t.caution .dot{background:var(--amber)}
+  .sec-t .cnt{margin-left:auto;font-weight:600;color:var(--dim)}
+  .quick{display:grid;gap:8px}
+  .qbtn{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:8px 14px 8px 16px;text-align:left;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;overflow:hidden}
+  .qbtn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px}
+  .qbtn.danger::before{background:var(--red)} .qbtn.caution::before{background:var(--amber)}
+  .qbtn:active{background:var(--panel3)}
+  .qi{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:23px;flex:none}
+  .qbtn.danger .qi{background:var(--red-bg);color:var(--red)} .qbtn.caution .qi{background:var(--amber-bg);color:var(--amber)}
+  .qt{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .qt b{font-size:16px;font-weight:800;line-height:1.3}
+  .qbtn .code{position:absolute;right:10px;top:7px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .pill{display:inline-flex;align-items:center;gap:6px;width:fit-content;font-size:13px;font-weight:800;padding:1px 9px;border-radius:4px;line-height:1.5}
+  .pill.danger{background:var(--red);color:#fff} .pill.caution{background:var(--amber);color:#1a1200} .pill.general{background:var(--blue);color:#fff}
+  .cases{display:grid;gap:7px}
+  .case{position:relative;display:flex;flex-direction:column;gap:3px;width:100%;min-height:56px;padding:8px 12px 8px 16px;text-align:left;border-radius:8px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:15.5px;line-height:1.35}
+  .case::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:4px;border-radius:2px}
+  .case.danger::before{background:var(--red)} .case.caution::before{background:var(--amber)}
+  .case:active{background:var(--panel3)}
+  .case.active{border-color:var(--accent);background:#1e2a3a;box-shadow:inset 0 0 0 1px var(--accent)}
+  .case .row{display:flex;align-items:center;gap:8px}
+  .case .cd{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--sub)}
+  .case .sv{font-size:11.5px;font-weight:800;padding:0 7px;border-radius:3px}
+  .case.danger .sv{background:var(--red);color:#fff} .case.caution .sv{background:var(--amber);color:#1a1200}
+  .case .nm{font-weight:600}
+
+  /* 대화 */
+  .chat{display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:92%;padding:10px 13px;border-radius:10px;font-size:16px;line-height:1.55;white-space:pre-line;word-break:break-word;overflow-wrap:anywhere;border:1px solid var(--line)}
+  .msg .who{display:block;font-size:12.5px;font-weight:700;color:var(--dim);margin-bottom:2px;font-family:var(--mono)}
+  .msg.user{align-self:flex-end;background:#1e2a3a;border-color:#2c4566}
+  .msg.bot{align-self:flex-start;background:var(--panel2);border-left:4px solid var(--line2)}
+  .msg.bot.danger{border-left-color:var(--red);background:var(--red-bg)}
+  .msg.bot.caution{border-left-color:var(--amber);background:var(--amber-bg)}
+  .msg.bot.general{border-left-color:var(--blue);background:var(--blue-bg)}
+  .msg.wait{color:var(--sub);font-family:var(--mono);font-size:13.5px}
+
+  /* 입력창 */
+  .inputbar{flex:none;display:flex;gap:8px;padding:8px 10px;background:var(--panel2);border-top:1px solid var(--line)}
+  .inputbar input{flex:1;min-width:0;min-height:50px;padding:0 14px;border-radius:10px;border:1px solid var(--line2);background:#12161b;color:var(--ink);font-size:16px}
+  .inputbar input::placeholder{color:var(--dim)}
+  .inputbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(76,155,232,.35)}
+  .inputbar .send{min-width:70px;min-height:50px;border:none;border-radius:10px;background:var(--accent);color:#06121f;font-size:16.5px;font-weight:800;cursor:pointer}
+  .inputbar .send:active{background:#63aaf0}
+  .foot{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 10px calc(5px + env(safe-area-inset-bottom,0px));background:#0f1216;border-top:2px solid var(--amber);color:var(--amber);font-size:12.5px;font-weight:800;text-align:center;line-height:1.35}
+  body.kb-open .foot,body.kb-open .st-meta{display:none}
+  body.kb-open .inputbar{padding-bottom:8px}
+
+  /* 비상정지 — 항상 화면 오른쪽 아래(입력창 바로 위), 로딩 화면보다 위 */
+  .estop-btn{position:absolute;right:12px;bottom:12px;z-index:60;display:inline-flex;align-items:center;gap:8px;min-height:56px;padding:0 20px;border-radius:28px;border:2px solid #ff8a8e;background:var(--red);color:#fff;font-weight:900;font-size:17px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 0 3px rgba(229,72,77,.35)}
+  .estop-btn:active{filter:brightness(1.15)}
+  .estop-btn .ic{font-size:21px}
+
+  /* ===== 결과 ===== */
+  .result{display:flex;flex-direction:column;gap:14px}
+  .empty{border:1px dashed var(--line2);border-radius:10px;padding:18px 16px;color:var(--sub)}
+  .empty h3{margin:0 0 6px;color:var(--ink);font-size:19px}
+  .empty p{margin:0}
+  .empty ol{display:grid;gap:8px;list-style:none;padding:0;margin:14px 0 0;counter-reset:s}
+  .empty li{counter-increment:s;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-weight:700;color:var(--ink)}
+  .empty li::before{content:"STEP 0" counter(s);display:block;font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-bottom:2px}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .faq{margin-top:18px}
+  .faq h4{margin:0;color:var(--ink);font-size:15.5px}
+  .faq p{margin:4px 0 0;font-size:14px}
+
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;animation:in .25s ease both}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+  .card-h{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+  .card-h .no{flex:none;width:34px;height:34px;border-radius:6px;background:var(--panel3);border:1px solid var(--line2);font-family:var(--mono);font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center}
+  .card-h h3{margin:0;font-size:16.5px;font-weight:800;line-height:1.3;min-width:0}
+  .card-h h3 small{display:block;font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--dim);letter-spacing:.05em}
+  .card-h .pill{margin-left:auto;flex:none}
+  .card-b{padding:14px;font-size:16px}
+  .card-b ul,.card-b ol{margin:6px 0 0;padding-left:20px}
+  .card-b li{margin:5px 0}
+  .card.lv-danger{border:2px solid var(--red)} .card.lv-danger .card-h .no{background:var(--red);border-color:var(--red);color:#fff}
+  .card.lv-caution{border:2px solid var(--amber)} .card.lv-caution .card-h .no{background:var(--amber);border-color:var(--amber);color:#1a1200}
+  .card.lv-general,.card.lv-info{border:2px solid var(--blue)}
+  .card.lv-general .card-h .no,.card.lv-info .card-h .no{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  .banner{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;font-size:19px;font-weight:900;line-height:1.3}
+  .banner .ic{font-size:30px}
+  .banner small{display:block;font-size:12px;font-weight:700;opacity:.85}
+  .banner.danger{background:var(--red-d);color:#fff;animation:pulse 1.2s ease-in-out 3}
+  .banner.caution{background:var(--amber);color:#1a1200}
+  .banner.general{background:var(--blue-d);color:#fff}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(229,72,77,.35)}}
+  .stops{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 4px}
+  .stops div{background:var(--red-bg);border:1px solid var(--red-line);border-radius:6px;padding:8px 8px;font-size:14.5px;font-weight:800;line-height:1.3;word-break:keep-all}
+  .stops div span{display:block;font-family:var(--mono);font-size:11px;color:#ff9a9e;font-weight:700}
+
+  .meta{display:grid;grid-template-columns:1fr;gap:2px;margin:12px 0 6px;font-size:14.5px}
+  .meta dt{color:var(--sub);font-weight:600;margin-top:4px}
+  .meta dd{margin:0;font-weight:700}
+  .kw{display:flex;flex-wrap:wrap;gap:6px}
+  .kw span{font-size:12.5px;font-family:var(--mono);background:var(--panel3);border:1px solid var(--line2);padding:0 7px;border-radius:3px;font-weight:600}
+  .sub-h{margin:12px 0 2px;font-size:14px;font-weight:800;color:var(--sub)}
+  .why{margin:8px 0 0}
+  .evidence{margin-top:14px;background:#171b21;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:13px;color:var(--sub);line-height:1.6}
+  .evidence .eh{font-size:11.5px;font-weight:800;color:var(--dim);font-family:var(--mono);letter-spacing:.05em;margin-bottom:4px}
+  .evidence p{margin:4px 0}
+  .evidence .note{color:var(--dim);font-size:12.5px}
+
+  .cause{display:grid;grid-template-columns:84px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .cause:first-child{padding-top:0} .cause:last-child{border-bottom:none;padding-bottom:0}
+  .rank{height:fit-content;text-align:center;font-size:12px;font-weight:800;border-radius:4px;padding:3px 0;margin-top:2px}
+  .rank.hi{background:var(--red-bg);color:#ff9a9e;border:1px solid var(--red-line)}
+  .rank.mid{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-line)}
+  .rank.lo,.rank.no{background:var(--panel3);color:var(--sub);border:1px solid var(--line2)}
+  .cause b{display:block;font-size:15.5px}
+  .cause .d{font-size:14px;color:var(--sub)}
+
+  ol.steps{list-style:none;padding:0 !important;margin:8px 0 0;counter-reset:st}
+  ol.steps li{counter-increment:st;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line);margin:0}
+  ol.steps li:last-child{border-bottom:none}
+  ol.steps li::before{content:counter(st);width:28px;height:28px;border-radius:4px;background:var(--panel3);border:1px solid var(--line2);font-family:var(--mono);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px}
+
+  .call{margin-top:14px;border:1px solid var(--line2);border-radius:8px;background:var(--panel2);padding:12px 14px}
+  .call.urgent{border-color:var(--red-line);background:var(--red-bg)}
+  .call h4{margin:0;display:flex;align-items:center;gap:8px;font-size:16px;line-height:1.35}
+  .call.urgent h4{color:#ff9a9e}
+  .callbtn{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:54px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#06121f;font-size:16.5px;font-weight:800;cursor:pointer}
+  .callbtn .ic{font-size:21px}
+  .call.urgent .callbtn{background:var(--red);color:#fff}
+  .callbtn:disabled{opacity:.6;cursor:not-allowed}
+  .callstatus{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13.5px;font-family:var(--mono);background:#12161b;border:1px solid var(--line2);border-radius:4px;padding:8px 10px}
+  .st{font-family:var(--font);font-size:12.5px;font-weight:800;border-radius:3px;padding:1px 8px}
+  .st.wait{background:var(--amber);color:#1a1200} .st.ok{background:var(--green);color:#04150c}
+
+  /* 재가동 잠금 */
+  .relock{margin-top:14px;border-radius:8px;padding:12px 14px;border:2px solid var(--amber);background:#0f1216}
+  .relock.danger{border-color:var(--red)}
+  .relock h4{margin:0;display:flex;align-items:center;gap:9px;font-size:16.5px;font-weight:900;line-height:1.35}
+  .relock h4 .ic{font-size:22px;color:var(--amber)}
+  .relock.danger h4 .ic{color:var(--red)}
+  .relock p{margin:6px 0 0;font-size:14.5px;color:var(--sub)}
+  .pinrow{display:flex;gap:8px;margin-top:12px}
+  .pinrow input{flex:1;min-width:0;min-height:52px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:#12161b;color:var(--ink);font-size:20px;letter-spacing:.3em}
+  .pinrow input::placeholder{letter-spacing:0;font-size:15px;color:var(--dim)}
+  .pinrow input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(76,155,232,.35)}
+  .pinrow button{flex:none;min-height:52px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#06121f;font-size:16px;font-weight:800;cursor:pointer}
+  .pinrow button:disabled,.pinrow input:disabled{opacity:.45;cursor:not-allowed}
+  .relock .pmsg{margin-top:8px;min-height:22px;font-size:14px;font-weight:700}
+  .relock .pmsg.err{color:#ff9a9e}
+  .relock.shake{animation:shake .35s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .relock.open{border-color:var(--green);background:#13261c}
+  .relock.open h4 .ic{color:var(--green)}
+  .relock.open p{color:var(--ink)}
+  .estop-note{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line2);font-size:13.5px;color:var(--sub)}
+  .estop-log{margin-top:6px;font-size:13.5px;font-weight:800;color:#ff9a9e}
+
+  /* 선택 버튼(칩) · 안전 정보 */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+  .chip{min-height:42px;padding:0 14px;border-radius:21px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-size:14.5px;font-weight:700;cursor:pointer;text-align:left;line-height:1.3}
+  .chip:active{background:var(--panel3)}
+  .chip.danger{border-color:var(--red-line);color:#ff9a9e} .chip.caution{border-color:var(--amber-line);color:var(--amber)}
+  .chip.kb{border-color:var(--blue-line);color:#8fbaff}
+  .chipbox{margin-top:14px;padding:10px 12px;border-radius:8px;background:#171b21;border:1px solid var(--line)}
+  .chipbox .sub-h{margin:0}
+  .kb-sum{font-size:16.5px;font-weight:700;margin:0 0 6px;line-height:1.55}
+  .kb-warn{margin-top:12px;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;background:var(--amber-bg);border:1px solid var(--amber-line);color:#ffd28a;font-weight:700}
+  .kb-warn .ic{font-size:19px;color:var(--amber);margin-top:3px}
+  .kb-src{margin-top:12px;font-size:12.5px;color:var(--dim)}
+
+  /* 알림 */
+  .toast{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 150px);z-index:95;max-width:520px;margin:0 auto;background:#0f1216;border:1px solid var(--line2);border-left:4px solid var(--accent);padding:11px 14px;border-radius:8px;font-size:14.5px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+
+  /* 기록 창 (전체 화면) */
+  .modal{position:fixed;top:0;bottom:0;left:0;right:0;z-index:90;background:rgba(0,0,0,.65);display:flex;justify-content:center}
+  .modal-box{width:100%;max-width:640px;height:100%;display:flex;flex-direction:column;background:var(--panel)}
+  .modal-h{flex:none;display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--panel2);border-bottom:1px solid var(--line)}
+  .modal-h h2{margin:0;font-size:17px}
+  .modal-h .cnt{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+  .modal-h .hbtn{margin-left:auto}
+  .modal-note{flex:none;margin:0;padding:8px 12px;font-size:13px;color:var(--sub);border-bottom:1px solid var(--line)}
+  .loglist{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:8px 12px}
+  .logitem{padding:9px 0;border-bottom:1px solid var(--line)}
+  .logitem .lh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;color:var(--sub)}
+  .logitem .lh .t{font-family:var(--mono)}
+  .logitem .lh .ty{font-weight:800;color:var(--ink);font-size:13.5px}
+  .logitem .lh .cd{font-family:var(--mono)}
+  .logitem .tx{margin-top:2px;font-size:14.5px;word-break:break-word;overflow-wrap:anywhere}
+  .lv{font-size:11.5px;font-weight:800;padding:0 7px;border-radius:3px}
+  .lv.danger{background:var(--red);color:#fff} .lv.caution{background:var(--amber);color:#1a1200} .lv.general{background:var(--blue);color:#fff}
+  .logempty{padding:30px 0;text-align:center;color:var(--dim)}
+  .modal-f{flex:none;display:flex;flex-direction:column;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--panel2)}
+  .modal-f .row{display:flex;gap:8px}
+  .modal-f input{flex:1;min-width:0;min-height:46px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:#12161b;color:var(--ink);font-size:16px}
+  .btn-primary{min-height:46px;padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#06121f;font-weight:800;cursor:pointer}
+  .btn-line{min-height:46px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:var(--panel3);font-weight:700;cursor:pointer;white-space:nowrap}
+  .modal-f .pmsg{margin:0;min-height:20px;font-size:13.5px;font-weight:700}
+  .modal-f .pmsg.err{color:#ff9a9e} .modal-f .pmsg.ok{color:#5fd39a}
+
+  /* ===== 로딩 화면 =====
+     · 눌러서 바로 들어가기 (click 한 가지만 사용 — 터치 뒤 '유령 클릭'으로 아래 버튼이 눌리는 문제 방지)
+     · 자바스크립트가 멈춰도 6초 뒤 CSS만으로 저절로 사라짐
+     · 한 번 들어가면 같은 탭에서는 다시 뜨지 않음 */
+  #loader{display:none}
+  .js #loader{position:fixed;top:0;bottom:0;left:0;right:0;z-index:50;background:#0f1216;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;cursor:pointer;
+    transition:opacity .4s ease;animation:ldAuto .4s ease 6s forwards}
+  #loader.hide{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .4s ease,visibility 0s .4s}
+  @keyframes ldAuto{to{opacity:0;visibility:hidden}}
+  .no-loader #loader,html.no-loader.js #loader{display:none}
+  #loader img{width:min(420px,80vw);height:auto}
+  #loader .bar{width:min(360px,76vw);height:4px;border-radius:2px;background:#232933;overflow:hidden}
+  #loader .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s ease}
+  #loader pre{margin:0;width:min(360px,76vw);min-height:104px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--sub);white-space:pre-wrap}
+  #loader .go{min-height:52px;padding:0 28px;border-radius:26px;border:none;background:var(--accent);color:#06121f;font-size:17px;font-weight:800;cursor:pointer}
+  #loader small{font-size:12.5px;color:var(--dim);text-align:center;line-height:1.5}
+
+  @media (min-width:420px){ .cases{grid-template-columns:1fr 1fr} }
+  @media (max-width:360px){ .logo{height:22px} .top{gap:4px;padding-left:8px;padding-right:8px} .hbtns{gap:4px} .hbtn{padding:0 7px;font-size:12.5px} .estop-btn{padding:0 16px;font-size:16px} }
+  @media (prefers-reduced-motion:reduce){
+    .card,.banner,.relock,.toast{animation:none !important;transition:none !important}
+    body .lamp{animation:none !important}
+    #loader{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="nojs" id="nojs"><b>⚠ 지금 화면은 '미리보기'라 버튼이 작동하지 않습니다</b>파일 앱·카톡·메일 미리보기는 프로그램 실행을 막습니다. 받은 링크로 열거나, 파일을 크롬·삼성 인터넷·사파리로 열어 주세요.</div>
+  <header class="top">
+    <img class="logo" src="data:image/png;base64,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" alt="ORBIT">
+    <div class="hbtns">
+      <button type="button" class="hbtn" id="kbBtn">안전 백과</button>
+      <button type="button" class="hbtn" id="logBtn">기록</button>
+      <button type="button" class="hbtn" id="resetBtn">새 상황</button>
+    </div>
+  </header>
+
+  <div class="status" role="status">
+    <div class="st-row"><i class="lamp" aria-hidden="true"></i><span id="alarmText">정상 대기</span><span class="clock" id="clock">--:--:--</span></div>
+    <div class="st-meta"><span>조립 2라인 · A-03 (가상)</span><span>공압 <b id="gPress">0.50 MPa</b></span><span>보전 호출 <b id="callCount">0건</b></span></div>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="화면 선택">
+    <button type="button" class="tab" role="tab" data-tab="input" aria-selected="true">상황 선택</button>
+    <button type="button" class="tab" role="tab" data-tab="result" aria-selected="false">판별 결과</button>
+    <button type="button" class="tab" role="tab" data-tab="chat" aria-selected="false">대화<span class="badge" id="chatBadge" hidden>0</span></button>
+  </nav>
+
+  <main class="views">
+    <section class="view" id="vInput" role="tabpanel" aria-label="상황 선택">
+      <p class="hint">아래 버튼을 누르거나, 맨 아래 입력창에 증상·안전 질문을 적으세요.</p>
+      <div class="sec-t">빠른 상황 선택</div>
+      <div class="quick">
+        <button type="button" class="qbtn danger" id="qAir">
+          <span class="qi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z"/><rect x="10.9" y="6" width="2.2" height="8" rx="1" fill="#1c2129"/><circle cx="12" cy="17.3" r="1.35" fill="#1c2129"/></svg></span>
+          <span class="qt"><b>공압 바람 소리 + 센서 깜빡임</b><span class="pill danger">즉시 정지</span></span>
+          <span class="code">Q-01</span>
+        </button>
+        <button type="button" class="qbtn caution" id="qGrip">
+          <span class="qi"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2 23.2 21.5H.8z"/><rect x="10.9" y="8.6" width="2.2" height="6.6" rx="1" fill="#1c2129"/><circle cx="12" cy="18" r="1.3" fill="#1c2129"/></svg></span>
+          <span class="qt"><b>그리퍼 미파지 알람</b><span class="pill caution">수동 점검</span></span>
+          <span class="code">Q-02</span>
+        </button>
+      </div>
+      <div id="cases"></div>
+    </section>
+    <section class="view" id="vResult" role="tabpanel" aria-label="판별 결과" hidden>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+    <section class="view" id="vChat" role="tabpanel" aria-label="대화" hidden>
+      <div class="chat" id="chat" aria-live="polite"></div>
+    </section>
+    <button type="button" class="estop-btn" id="estopBtn" aria-label="비상정지 (항상 작동)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z"/><rect x="6" y="10.9" width="12" height="2.2" rx="1" fill="#e5484d"/></svg>비상정지</button>
+  </main>
+
+  <!-- form을 쓰지 않음: 전송해도 페이지가 절대 새로고침되지 않게 -->
+  <div class="inputbar" id="inputbar">
+    <input id="text" type="text" maxlength="200" placeholder="증상이나 안전 질문 (예: 기계 오작동)" aria-label="증상 입력" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send">
+    <button type="button" class="send" id="sendBtn">전송</button>
+  </div>
+  <div class="foot"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2 23.2 21.5H.8z"/><rect x="10.9" y="8.6" width="2.2" height="6.6" rx="1" fill="#0f1216"/><circle cx="12" cy="18" r="1.3" fill="#0f1216"/></svg>가상 시연 데이터 · 실제 현장은 안전수칙과 매뉴얼 우선</div>
+
+  <div id="loader" role="dialog" aria-label="ORBIT 시스템 불러오는 중">
+    <img src="data:image/png;base64,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" alt="ORBIT">
+    <div class="bar" aria-hidden="true"><i></i></div>
+    <pre aria-hidden="true"></pre>
+    <button type="button" class="go" id="loaderGo">바로 시작</button>
+    <small>화면 아무 곳이나 눌러도 들어갑니다<br>비상정지 버튼은 로딩 중에도 작동합니다</small>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal" id="logModal" role="dialog" aria-modal="true" aria-labelledby="logTitle" hidden>
+  <div class="modal-box">
+    <div class="modal-h"><h2 id="logTitle">대응 기록</h2><span class="cnt" id="logCount"></span><button type="button" class="hbtn" id="logClose">닫기</button></div>
+    <p class="modal-note">판별 · 호출 · 비상정지 · 잠금 해제가 이 브라우저에 자동 저장됩니다. (가상 시연 · 실제 운영은 서버 저장)</p>
+    <div class="loglist" id="logBody"></div>
+    <div class="modal-f">
+      <div class="row">
+        <button type="button" class="btn-primary" id="logCsv">CSV 저장</button>
+        <input type="password" id="logPw" placeholder="담당자 비밀번호" aria-label="기록 지우기용 담당자 비밀번호" inputmode="numeric" maxlength="20" autocomplete="off">
+        <button type="button" class="btn-line" id="logClear">지우기</button>
+      </div>
+      <p class="pmsg" id="logMsg" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
+<!-- 로딩 화면: 본 프로그램과 따로 실행 — 본 프로그램에 문제가 생겨도 로딩 화면은 반드시 닫힘 -->
+<script>
+(function(){
+  var box = document.getElementById('loader');
+  var done = false, timer = null;
+  function onKey(){ finish(); }
+  function finish(){
+    if(done) return;
+    done = true;
+    clearTimeout(timer);
+    try{ sessionStorage.setItem('orbit.m.boot', '1'); }catch(e){}
+    document.removeEventListener('keydown', onKey);
+    if(!box) return;
+    var bar = box.querySelector('.bar i');
+    if(bar) bar.style.width = '100%';
+    box.classList.add('hide');
+    var b = box; box = null;
+    setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 450);
+  }
+  window.__orbitFinish = finish;
+  if(!box) return;
+  var rm = false;
+  try{ rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(rm || document.documentElement.className.indexOf('no-loader') >= 0){
+    done = true; box.parentNode.removeChild(box); box = null; return;
+  }
+  box.addEventListener('click', finish);
+  document.addEventListener('keydown', onKey);
+  var pre = box.querySelector('pre'), bar = box.querySelector('.bar i');
+  var lines = ['> 안전 판별 규칙 불러오는 중 ...... OK', '> 현장 오류 사례 8건 ............. OK', '> 비상정지 · 재가동 잠금 ......... OK', '> 보전 담당자 호출 채널 .......... OK', '> 시스템 준비 완료'];
+  var i = 0;
+  (function next(){
+    if(done) return;
+    if(i < lines.length){
+      pre.textContent += lines[i] + '\n'; i++;
+      bar.style.width = (i / lines.length * 100) + '%';
+      timer = setTimeout(next, 340);
+    } else timer = setTimeout(finish, 450);
+  })();
+})();
+</script>
+
+<script>
+'use strict';
+
+/* =========================================================
+   1. 위험도 키워드 (공백 제거 · 소문자 변환 후 포함 여부 검사)
+   ========================================================= */
+const KW_DANGER = ['쉬익','쉭','슉','치익','피식','바람 소리','연기','타는 냄새','탄 냄새','과열','뜨거','뜨겁','스파크','불꽃','불났','그을','감전','찌릿','깜빡',
+                   '바람 새','바람이 새','에어 새','에어가 새','공기 새','공기가 새','탄내','깜박','점멸','화재','과부하','오버로드','잔압',
+                   '임의 재가동','재가동 시도','다시 켜','다시 돌려',
+                   'smoke','fire','spark','burn','overload','shock'];
+const KW_CAUTION = ['미파지','알람','경보','에러','걸림','끼임','소음','진동','이상한 소리','소리가 커','소리가 크','냄새',
+                    '원점','인터록','감지 누락','틀어짐','풀림','통신','끊김','끊겨','alarm','error','noise'];
+
+/* 자유 입력 → 사례 매칭 사전
+   sym = 증상(무엇이 잘못됐는지) · 2점 / obj = 장소·부품 이름 · 1점
+   - 공백을 지우고 비교: "바람 새는" / "바람새는" 모두 잡힘
+   - 어간만 적어 활용형(풀렸어요·풀려서·풀림)을 함께 잡음
+   - 위험 사례라도 '증상'이 있어야 위험. 부품 이름만 나오면(예: "모터 소리가 커요") 주의로 판별 */
+const CATEGORY_RULES = [
+  {data:'INJ', sym:['비명','살려','도와주세요','도와줘','사람이 다쳤','다쳤','부상자','부상당','부상을 입','피가','피 나','출혈이','손이 끼','손가락이','손가락 끼','팔이 끼','몸이 끼','옷이 끼','끼여서','끼였어','쓰러졌','쓰러져','의식이 없','의식을 잃','숨을 안','호흡이 없','화상을 입','화상 입','데었','감전됐','감전 됐','감전당','베였','골절','잘렸','잘려','절단됐','깔렸','깔려','치였','치여','부딪혔','부딪쳤','찔렸','찔려','추락했','추락 사고','숨을 못','숨이 안','호흡 곤란','호흡이 곤란','말려 들어갔','말려들어갔','뼈가 부러','팔이 부러','다리가 부러','손가락이 부러',
+                    'injur','hurt','blood','bleed','burned'], obj:[]},
+  {data:'CH', sym:['눈에 들어','눈에 튀','눈에 뭐가','눈에 칩','눈에 쇳가루','눈에 이물','눈에 약품','눈에 화학','눈에 세척','피부에 묻','몸에 묻','손에 묻','얼굴에 튀','얼굴에 묻','팔에 묻','약품을 마','세척제를 마','가스를 마','가스 마셨','삼켰','흡입했','들이마셨','들이마셔','유독가스','화학물질에','약품에 닿','약품이 튀','염산','황산','양잿물','가성소다','chemical in eye'],
+              obj:['화학물질','약품','세척제','용제','시너']},
+  {data:'GX', sym:['가스 냄새','가스냄새','가스가 새','가스 새','가스 누출','가스누출','가스 경보','폭발','펑 소리','펑 하고','펑하고','쾅 소리','쾅 하고','쾅하고','폭음','explosion','gas leak','gas smell'], obj:['가스']},
+  {data:'RU', sym:['안 멈춰','안 멈추','안멈춰','멈추지 않','멈추지않','계속 돌아','계속 움직','갑자기 움직','갑자기 작동','갑자기 돌','혼자 움직','저절로 움직','멋대로 움직','제멋대로 움직','비상정지 눌렀는데','비상정지를 눌렀는데','정지 버튼 눌렀는데','정지버튼 눌렀는데','충돌','부딪쳤','부딪혔','won\'t stop'],
+              obj:['로봇','머니퓰레이터']},
+  {data:'FO', sym:['위에서 떨어','천장에서','머리 위로','머리위로','낙하','쏟아졌','쏟아져','무너졌','무너져','붕괴','랙이 넘어','선반이 넘어','적재물','짐이 떨어','물건이 떨어','파렛트가 넘어','팔레트가 넘어','박스가 떨어','상자가 떨어'], obj:['랙','선반','적재','크레인','호이스트']},
+  {data:'HL', sym:['피곤','졸려','졸음','어지러','어지럽','머리가 아','두통','속이 안 좋','속이 메스','토할','구토','숨이 차','가슴이 아','가슴이 답답','몸이 안 좋','몸이 이상','컨디션','식은땀','몸에 열','몸이 뜨거','dizzy','tired','headache'], obj:[]},
+  {data:'GD', sym:['끄래','끄라고','꺼라고','해제하래','해제하라고','떼래','떼라고','빼고 돌리','덮개가 없','덮개 없','커버가 없','커버 없','덮개를 열','덮개 열','덮개가 열','덮개를 떼','덮개 떼','안전문이 안 닫','안전문 고장','안전문이 고장','안전문이 열린','안전 센서 꺼','안전센서 꺼','센서 꺼놓','센서를 꺼','라이트 커튼 고장','라이트커튼 고장','비상정지 버튼이 안','비상정지가 안','비상정지 고장','인터록 해제','인터록을 해제','인터록 우회','안전장치 고장','안전장치가 고장','안전장치 해제','안전장치를 해제','점퍼','우회'],
+              obj:['덮개','커버','안전문','방호','안전장치']},
+  {data:'C6', sym:['과열','뜨거','뜨겁','열이 나','열나','타는','탄내','탄 냄새','연기','스파크','불꽃','불났','불이 났','불 났','불이 붙','화재','그을','녹았','감전','찌릿',
+                   'smoke','fire','spark','burn','overheat','hot'], obj:['제어반','차단기','단자']},
+  {data:'C8', sym:['잔압','남은 공기','남은 압력','압력이 남','압력 남','공기가 남','에어가 남','배출 안','배출을 안','배출하지','residual'],
+              obj:['배출 밸브','메인 에어','에어 차단','에어 잠','에어를 잠','밸브 잠','밸브를 잠']},
+  {data:'WT', sym:['물이 새','물 새','물이 떨어','누수','냉각수','물기','바닥이 젖','젖었','물이 고','물이 흘','water leak'], obj:['배관','쿨런트','절삭유']},
+  {data:'C1', sym:['에어 없','에어가 없','공기 없','공기가 없','압력 없','압력이 없','압력이 0','압력 0','에어 안 들어','에어가 안 들어','공기가 안','바람이 약','바람이 안','쉬익','쉭','칙칙','호스가 터','호스 터','호스 파열','슉','치익','피식','바람 소리','바람 새','바람이 새','공기 새','공기가 새','에어 새','에어가 새','새는 소리','누설','샌다','새요',
+                   '끝단','미도달','끝까지 안','끝까지 못','덜 나','덜 밀','안 밀','압력 낮','압력이 낮','압력 떨어','압력이 떨어','압력 부족','에어가 안 나',
+                   '리크','leak'],
+              obj:['실린더','호스','피팅','레귤레이터','공압','에어','air','cylinder','hose']},
+  {data:'PW', sym:['정전','전기가 나','전기 나갔','전기가 끊','전원이 꺼','전원 꺼','전원이 안','전원 안 들어','화면이 꺼','화면 꺼','화면이 안','안 켜져','안켜져','안 켜지','차단기가 내려','차단기 내려','차단기가 떨어','두꺼비집','power off','blackout'],
+              obj:['전원','차단기','전기']},
+  {data:'C2', sym:['반응 없','반응이 없','감지가 없','신호가 없','깜빡','깜박','점멸','안 들어와','안 켜','불이 안','못 읽','못 잡','안 잡','인식 안','인식을 못','인식 못','감지 안','감지를 못','감지 못','감지 누락','빈 동작','부품이 있는데','blink','not detect'],
+              obj:['센서','근접','포토','불빛','led','램프','반사판','sensor']},
+  {data:'Q_GRIP', sym:['미파지','못 집','안 집','못 잡아','놓쳐','놓침','떨어뜨'], obj:['그리퍼','파지','집게','gripper']},
+  {data:'C3', sym:['벨트가 끊','벨트 끊','체인이 끊','체인 끊','벨트가 빠','체인이 빠','벨트가 늘어','잼','jam','걸림','걸렸','걸려','막힘','막혔','끼었','끼였','끼임','과부하','오버로드','안 돌','쌓였','밀려','stuck'],
+              obj:['컨베이어','벨트','롤러','이송','모터','모터 소리가 안','모터소리가 안','펌프 소리가 안','conveyor','motor']},
+  {data:'C4', sym:['원점 복귀','홈 복귀','복귀가 안','복귀 안','복귀 실패','인터록','인터락','interlock','비상정지 해제','해제했','해제 했','대기 상태','대기로','안 움직'],
+              obj:['원점','안전문','라이트 커튼','초기 위치']},
+  {data:'C5', sym:['끊김','끊겨','끊어','끊기','간헐','가끔 멈','갑자기 멈','접촉 불량','접촉이','단선','노이즈','disconnect'],
+              obj:['통신','신호','커넥터','배선','케이블','랜선','cable']},
+  {data:'C9', sym:['오일 없','오일이 없','기름 없','기름이 없','윤활유 없','윤활유가 없','그리스 없','그리스가 없','오일 떨어','오일이 떨어','기름 떨어','오일 다 ','기름 다 ','오일 바닥','주유 안','주유를 안','오일 레벨','오일 게이지','누유','오일 누설','기름 누설','기름이 새','기름 새','오일이 새','오일 새','기름이 떨어','기름이 고','오일 부족','윤활 부족','기름 부족','주유','쇳소리','삐걱','끼익','마찰음','미끄러','oil leak','grease'],
+              obj:['오일','기름','윤활','그리스','감속기','oil']},
+  {data:'MT', sym:['부품 없','부품이 없','부품이 안 들어','부품이 다 떨어','부품 공급','자재 없','자재가 없','자재 다 떨어','자재가 다 떨어','자재 떨어','자재가 떨어','재료 없','재료가 없','재료가 다','공급이 안','공급 안','결품'], obj:['자재','피더','호퍼']},
+  {data:'TL', sym:['공구가 부러','공구 부러','드릴 날','드릴날','날이 부러','날이 나갔','칼날','날이 무뎌','공구 교체','비트가 부러','팁이 부러','공구가 빠','엔드밀'], obj:['공구','드릴','커터','비트']},
+  {data:'C7', sym:['풀림','풀렸','풀려','헐거','느슨','흔들','덜컹','덜걱','틀어','어긋','토크 불량','체결 불량','loose'],
+              obj:['볼트','너트','나사','토크','체결','조임','지그','브래킷','bolt']},
+  {data:'QC', sym:['불량','ng 나','ng가','ng 떠','ng 판정','치수','찍힘','스크래치','긁힘','검사에서 걸','검사 불합격','외관','품질 문제','defect'], obj:['검사','제품']},
+];
+/* 안전 최우선: 아래 단어가 있으면 점수와 관계없이 그 사례로 (위에서부터) */
+/* 몸 부위 + 다침 표현 ("손가락이 잘렸어요", "팔이 깔렸어요") / 사람 + 사고 표현 ("동료가 넘어졌어요") */
+const BODY = '(손가락|발가락|손목|손등|손|팔목|팔|다리|발목|발|머리|눈|얼굴|몸|허리|어깨|무릎|목|귀|이마|턱)';
+const BODY_INJ = new RegExp(BODY + '(이|가|을|를|에|도|이랑|쪽)?(잘|깔|끼었|끼였|끼여|끼어|찍|베|찔|데었|데였|다쳤|다쳐|부러|피가|피나|화상|박았|맞았|부딪|말려|찢)');
+const BODY_PAIN = new RegExp(BODY + '(이|가|을|를|에|도|쪽)?(아파|아프|저려|저리|쑤셔|결려|붓|부었|삐었|삐끗|접질|멍|따가|따끔|칼칼|가려|화끈|침침|뻐근)');
+const PERSON_ACC = /(사람|동료|작업자|직원|근로자|제가|내가|친구|반장|선배|후배|팀장|아저씨|아주머니|이모|삼촌|누가|누군가)[^|]{0,10}?(떨어졌|떨어져|넘어졌|넘어져|쓰러|부딪|치였|치여|깔렸|깔려|추락|미끄러져|미끄러졌|끼었|끼였|말려|다쳤)/;
+const PERSON = /(사람|동료|작업자|직원|근로자|제가|내가|친구|반장|선배|후배|팀장|아저씨|아주머니|이모|삼촌|누가|누군가)/;
+/* "케이블이 잘렸어요", "로봇이 지그에 부딪쳤어요"처럼 설비가 주어면 부상으로 보지 않음 */
+const MACHINE_SUBJ = /(로봇|지그|설비|기계|부품|실린더|축|그리퍼|케이블|호스|벨트|컨베이어|배관|전선|공구|드릴|날|선|줄|벨트|박스|제품)(이|가|끼리|하고|랑)/;
+const ACC_ONLY = ['잘렸','잘려','절단됐','깔렸','깔려','치였','치여','부딪혔','부딪쳤','찔렸','찔려'];
+function injuryHit(t){
+  if(BODY_INJ.test(t) || PERSON_ACC.test(t)) return true;
+  const h = hits(t, CATEGORY_RULES.find(r => r.data === 'INJ').sym);
+  if(!h.length) return false;
+  const onlyAcc = h.every(w => ACC_ONLY.includes(w));
+  return !(onlyAcc && MACHINE_SUBJ.test(t) && !PERSON.test(t));
+}
+const OVERRIDE = [
+  {data:'CH', kw:[], test:t => hits(t, CATEGORY_RULES.find(r => r.data === 'CH').sym).length > 0},
+  {data:'INJ', kw:[], test:injuryHit},
+  {data:'GX', kw:[], test:t => hits(t, CATEGORY_RULES.find(r => r.data === 'GX').sym).length > 0},
+  {data:'C6', kw:['연기','타는','탄내','탄 냄새','스파크','불꽃','불났','불이 났','불 났','불이 붙','화재','그을','과열','smoke','fire','spark']},
+  {data:'C8', kw:['잔압','residual']}
+];
+const AIR_WITH_SENSOR = ['센서','깜빡','깜박','점멸'];
+
+/* 부정 표현: "타는 냄새는 안 나요", "바람 소리는 없어요" → 그 구절은 판별에서 제외
+   단, "안 나와요(안 나옴)"·"안 돌아요"·"안 들어와요"처럼 고장 증상인 표현은 부정으로 보지 않음 */
+const NEGATION = /(안나(?!와|옴|온|오))|안났|안납|없어|없음|없고|없는|없다|없습|없네|없이|아니|않|안보여|안보임|안들려|안느껴|전혀|nothing|nosmoke|no(?=smoke|fire|leak|spark)|not(?=burn|leak|smoke)/;
+
+/* =========================================================
+   2. 위험도별 고정 문구
+   ========================================================= */
+const LEVELS = {
+  danger:  {icon:'stop', label:'위험', verdict:'즉시 정지 – 임의 재가동 금지', sub:'DANGER · 설비 가동 중지 유지', alarm:'위험 · 즉시 정지',
+            chat:'[위험] 즉시 정지 – 임의 재가동 금지\n비상정지 → 전원·에어 차단 → 접근 금지 순서로 진행하고, 오른쪽 3단계 안내를 확인하세요.'},
+  caution: {icon:'warn', label:'주의', verdict:'정지 후 수동 점검 – 안전 확인 전 재가동 금지', sub:'CAUTION · 안전 확인 후 점검', alarm:'주의 · 수동 점검',
+            chat:'[주의] 정지 후 수동 점검\n안전 확인 전에는 재가동하지 말고, 오른쪽 안내 순서대로 점검하세요.'},
+  general: {icon:'info', label:'일반', verdict:'판단 불가: 일단 정지하고 보전 담당자에게 확인', sub:'GENERAL · 추가 정보 필요', alarm:'판단 불가 · 확인 필요',
+            chat:'[판단 불가] 일단 정지하고 보전 담당자에게 확인하세요.\n소리·센서 불빛·냄새·알람 내용을 구체적으로 적으면 다시 판별합니다.'}
+};
+const STOP_ORDER = ['비상정지','전원·에어 차단','접근 금지'];
+const RESTART_NOTICE = '재가동은 보전 담당자 승인 후 현장 절차에 따름';
+
+/* 재가동 잠금 비밀번호 — 1126 고정 (시연용. 실제 운영에서는 서버 인증으로 바꿔야 함) */
+const MAINT_PASSWORD = Object.freeze(['1126'])[0];
+const MAX_TRY = 3;          // 연속 오류 허용 횟수
+const COOLDOWN_SEC = 30;    // 초과 시 입력 대기 시간
+const CALL_COMMON = '1차 점검 후에도 이상이 반복되거나, 분해·배선·파라미터 수정이 필요하면 설비보전 담당자를 호출합니다.';
+const RANK_LABEL = {hi:'가능성 높음', mid:'가능성 중간', lo:'확인 필요'};
+
+/* =========================================================
+   3. 시연 데이터 (가상) — 답변은 모두 이 상수에서만 나옴
+   ========================================================= */
+const DATA = {
+  Q_AIR: {code:'Q-01', level:'danger', cat:'공압', title:'공압 바람 소리 + 센서 깜빡임', press:'0.31 MPa',
+    s1:{act:['즉시 정지합니다.','비상정지 후 전원·에어를 차단합니다.','설비에 접근하거나 손대지 않습니다.']},
+    s2:[{n:'에어 실린더 연결부·호스 에어 누설'},{n:'압력 게이지 이상'},{n:'감지 센서 케이블 접촉 불량'},{n:'센서 전원 불안정'}],
+    s3:['에어 차단 후 압력 게이지 0 확인','호스·연결부는 눈으로만 확인','감지 센서 케이블 확인','소리가 계속되거나 압력이 안 빠지거나 원인 불명이면 보전 담당자 호출'],
+    call:['에어를 차단해도 소리가 계속될 때','압력 게이지가 0으로 떨어지지 않을 때','원인을 알 수 없을 때']},
+
+  Q_GRIP: {code:'Q-02', level:'caution', cat:'그리퍼', title:'그리퍼 미파지 알람', press:'0.50 MPa',
+    s1:{act:['정지 후 수동 점검합니다.','안전 확인 전에는 재가동하지 않습니다.']},
+    s2:[{n:'감지 센서 위치 어긋남'},{n:'그리퍼 에어 압력 부족'},{n:'부품 위치 불량'},{n:'그리퍼 마모'}],
+    s3:['정지 후 전원·에어 차단','부품 위치와 그리퍼 열림·닫힘 상태 확인','감지 센서 위치·오염 확인','압력 게이지 값 확인','같은 알람이 반복되거나 원인을 못 찾으면 보전 담당자 호출'],
+    call:['같은 알람이 반복될 때','원인을 찾지 못했을 때']},
+
+  C1: {code:'PN-01', kb:['loto'], level:'danger', cat:'공압', title:'공압 라인 바람 새는 소리 + 실린더 끝단 미도달 알람', short:'바람 새는 소리 · 실린더 끝단 미도달', press:'0.31 MPa',
+    s1:{why:'에어가 새면 에어 실린더 힘이 약해져 끝까지 못 가고, 압력이 다시 차는 순간 갑자기 움직일 수 있습니다.',
+        act:['비상정지 버튼을 누른 상태를 유지합니다.','주변 작업자에게 알리고 설비 가까이 오지 않게 합니다.','소리 나는 곳을 손으로 더듬어 찾지 않습니다.']},
+    s2:[{r:'hi',n:'에어 호스 빠짐·찢어짐, 원터치 피팅 풀림',d:'호스 연결부에서 쉬익 소리가 나면 가장 먼저 의심합니다.'},
+        {r:'hi',n:'압력 설정(레귤레이터) 변동으로 공급 압력 저하',d:'압력 게이지가 평소보다 낮으면 실린더가 끝까지 못 밀어냅니다.'},
+        {r:'mid',n:'에어 실린더 내부 패킹 마모',d:'실린더 몸통이나 로드 쪽에서 바람이 새고 동작이 느려집니다.'},
+        {r:'mid',n:'실린더 끝단 감지 센서 위치 밀림',d:'실린더는 끝까지 갔는데 센서 불빛이 안 들어오면 알람이 뜹니다.'},
+        {r:'lo',n:'솔레노이드 밸브 배기 누설',d:'밸브 배기구에서 바람이 계속 나옵니다.'}],
+    s3:['멀리서 압력 게이지 숫자를 읽고 기록합니다. (가상 기준: 정상 0.5 MPa 부근)','메인 에어 밸브를 잠그고 "점검 중" 표지를 붙입니다.',
+        '잔압 배출 밸브를 열어 남은 공기를 빼고, 압력 게이지가 0인지 확인합니다.','전원을 차단하고 수동 모드로 바꿉니다.',
+        '소리가 나던 부위의 호스·피팅을 눈으로만 확인합니다.','실린더 끝단 감지 센서의 고정 나사 풀림, 케이블 눌림을 확인합니다.'],
+    call:['누설 부위 호스·피팅 교체, 실린더 분해가 필요할 때','압력 설정을 다시 맞춰야 할 때','끝단 감지 센서 위치를 다시 잡아야 할 때']},
+
+  C2: {code:'SN-02', level:'danger', cat:'센서', title:'근접·포토 센서 불빛 깜빡임 및 부품 감지 누락', short:'센서 불빛 깜빡임 · 감지 누락', press:'0.50 MPa',
+    s1:{why:'감지 센서가 깜빡이면 설비가 부품 유무를 잘못 판단해 빈 동작이나 겹쳐 넣기 같은 예상하지 못한 동작을 할 수 있습니다.',
+        act:['비상정지 상태를 유지합니다.','센서 앞을 손으로 가리거나 부품을 손으로 밀어 넣지 않습니다.','깜빡이는 센서의 위치를 멀리서 확인해 적어 둡니다.']},
+    s2:[{r:'hi',n:'감지 센서 표면·렌즈 오염',d:'먼지·기름·칩이 묻으면 감지가 됐다 안 됐다를 반복합니다.'},
+        {r:'hi',n:'감지 거리 이탈 · 센서 브래킷 틀어짐',d:'진동으로 센서가 밀리면 부품과의 거리가 멀어집니다.'},
+        {r:'mid',n:'포토 센서 반사판 위치 틀어짐·오염',d:'반사판이 비뚤어지면 빛이 돌아오지 않습니다.'},
+        {r:'mid',n:'감지 센서 케이블 접촉 불량',d:'움직이는 부위의 케이블이면 동작할 때마다 깜빡입니다.'},
+        {r:'lo',n:'부품 색·재질 변경, 주변 조명 간섭',d:'품종 전환 직후나 특정 시간대에만 생기면 의심합니다.'}],
+    s3:['깜빡이는 센서 위치와 불빛 상태(깜빡임 / 꺼짐 / 계속 켜짐)를 기록합니다.','손 넣기 전 전원·에어를 차단하고 수동 모드로 바꿉니다.',
+        '감지 센서 표면 오염을 확인합니다. 닦기는 사내 허용 범위에서만 합니다.','센서 고정 너트·브래킷 흔들림, 위치 표시 어긋남을 확인합니다.',
+        '센서 케이블 꺾임, 커넥터 빠짐을 눈으로 확인합니다.'],
+    call:['확인 후에도 깜빡임이 계속될 때','감지 거리·감도 설정을 바꾸거나 센서를 교체해야 할 때','케이블·배선 수정이 필요할 때']},
+
+  C3: {code:'DR-03', kb:['caught','loto'], level:'danger', cat:'구동', title:'컨베이어 이송 중 부품 걸림(잼) 및 모터 과부하 알람', short:'부품 걸림(잼) · 모터 과부하', press:'0.50 MPa',
+    s1:{why:'걸린 부품을 빼는 순간 컨베이어가 갑자기 움직이면 손이 끼일 수 있습니다. 과부하 상태에서 리셋을 반복하면 모터가 과열됩니다.',
+        act:['비상정지 버튼을 누른 상태를 유지합니다.','걸린 부품을 손으로 바로 빼지 않습니다.','과부하 알람을 반복해서 리셋하지 않습니다.']},
+    s2:[{r:'hi',n:'부품 걸림 (가이드 간격 좁음, 부품 뒤집힘)',d:'같은 위치에서 반복해서 걸리면 가이드 간격을 의심합니다.'},
+        {r:'hi',n:'이물질·파손 부품 끼임',d:'깨진 부품 조각이 롤러 사이에 끼면 모터에 힘이 걸립니다.'},
+        {r:'mid',n:'벨트 장력 이상 · 한쪽 쏠림',d:'벨트가 한쪽으로 쏠리면 프레임에 쓸립니다.'},
+        {r:'lo',n:'앞뒤 구간 속도 불일치로 부품 몰림',d:'다음 공정이 늦어 부품이 쌓이면 밀려서 걸립니다.'}],
+    s3:['해당 구간 전원을 차단하고 "점검 중" 표지를 붙입니다. 공압 장치가 있으면 에어도 차단합니다.','모터 표면이 식을 때까지 손을 대지 않습니다.',
+        '걸린 위치와 부품 상태를 기록합니다.','손을 넣지 말고 집게 등 공구로 걸린 부품을 빼냅니다.','가이드 간격, 벨트 쏠림, 롤러 사이 이물질을 눈으로 확인합니다.'],
+    call:['과부하 알람이 다시 뜰 때','모터에서 열·냄새가 날 때','가이드 간격·벨트 장력·속도 설정 조정이 필요할 때']},
+
+  C4: {code:'CT-04', level:'caution', cat:'제어', title:'비상정지 해제 후 원점 복귀 실패 및 인터록 대기 정지', short:'원점 복귀 실패 · 인터록 대기', press:'0.50 MPa',
+    s1:{why:'설비가 안전 조건이 맞지 않아 스스로 기다리는 상태입니다. 원인을 모르고 강제로 움직이면 충돌이 생길 수 있습니다.',
+        act:['비상정지를 눌렀던 원인이 해결됐는지 먼저 확인합니다.','설비 안에 사람·공구가 없는지 확인합니다.','안전문을 닫고 수동 모드로 둡니다.']},
+    s2:[{r:'hi',n:'인터록 조건 미충족',d:'안전문 열림, 라이트 커튼 가림, 다른 비상정지 버튼이 아직 눌려 있는 경우.'},
+        {r:'hi',n:'원점 감지 센서가 감지 안 됨',d:'센서 오염·위치 밀림으로 불빛이 안 들어옵니다.'},
+        {r:'mid',n:'에어 공급이 꺼져 실린더가 원위치로 못 감',d:'압력 게이지가 0이거나 낮으면 의심합니다.'},
+        {r:'lo',n:'해제 순서 누락 (리셋 버튼 미조작)',d:'비상정지 해제 후 리셋 버튼을 눌러야 하는 설비가 많습니다.'}],
+    s3:['화면의 인터록·대기 메시지를 그대로 기록합니다.','라인 전체의 비상정지 버튼이 모두 해제됐는지 확인합니다.',
+        '안전문 닫힘, 라이트 커튼 앞 물건 유무를 확인합니다.','압력 게이지로 에어가 들어오는지 확인합니다.','원점 감지 센서 불빛과 실린더 원위치를 확인합니다.'],
+    call:['원점 복귀가 2회 이상 실패할 때','인터록을 우회해야 할 것처럼 보일 때 — 절대 직접 우회하지 않습니다','원점 위치·파라미터를 다시 설정해야 할 때']},
+
+  C5: {code:'EL-05', kb:['elec'], level:'caution', cat:'전기', title:'가동 중 간헐적 통신·신호 끊김 (커넥터·배선 접촉 불량 의심)', short:'간헐적 통신·신호 끊김', press:'0.50 MPa',
+    s1:{why:'신호가 끊기면 설비가 예상 못 하게 멈추거나 움직일 수 있습니다. 가동 중에 케이블을 흔들어 확인하지 않습니다.',
+        act:['운전 정지 후 수동 모드로 바꿉니다.','가동 중에는 케이블·커넥터를 만지지 않습니다.','제어반 문을 직접 열지 않습니다.']},
+    s2:[{r:'hi',n:'커넥터 풀림 · 잠금 레버 미체결',d:'진동이 있는 설비에서 자주 생깁니다.'},
+        {r:'hi',n:'움직이는 부위 케이블 반복 굽힘 → 내부 단선',d:'특정 동작 때만 끊기면 가장 유력합니다.'},
+        {r:'mid',n:'케이블 피복 손상·눌림',d:'덮개나 가이드에 눌린 흔적을 확인합니다.'},
+        {r:'lo',n:'동력선과 신호선이 가까워 생기는 노이즈',d:'큰 모터가 돌 때만 끊기면 의심합니다.'}],
+    s3:['알람 이력(발생 시각, 횟수, 어떤 동작 때)을 기록합니다.','운전 정지 후 전원을 차단합니다.','보이는 커넥터의 빠짐·잠금 상태를 눈으로 확인합니다.',
+        '움직이는 부위 케이블의 꺾임·눌림·피복 손상을 확인합니다.','커넥터 다시 꽂기는 사내에서 허가된 경우에만 합니다.'],
+    call:['배선 수정, 단자 조임, 케이블 교체가 필요할 때','통신 설정·파라미터 확인이 필요할 때','제어반 내부 점검이 필요할 때']},
+
+  C6: {code:'SF-06', kb:['fire','elec'], level:'danger', cat:'안전', title:'설비 과열·타는 냄새 발생 시 알람 리셋 및 재가동 시도', short:'과열·타는 냄새 · 리셋·재가동 시도', press:'0.50 MPa',
+    s1:{why:'과열·연기·타는 냄새는 전기 화재로 이어질 수 있습니다. 이 상태에서 리셋하고 재가동하면 더 크게 탈 수 있습니다.',
+        act:['비상정지 버튼을 누르고, 알람 리셋 버튼을 누르지 않습니다.','주변 작업자를 물러나게 하고 관리자에게 바로 알립니다.','덮개·제어반을 열거나 뜨거운 부위를 만지지 않습니다.']},
+    s2:[{r:'hi',n:'모터 과부하 (걸림·막힘)',d:'부품이나 이물이 끼어 모터가 무리하게 돌면 뜨거워집니다.'},
+        {r:'hi',n:'전선·단자 풀림, 피복 손상',d:'접촉이 나쁜 곳에서 열과 타는 냄새가 납니다.'},
+        {r:'mid',n:'회전 부위 마찰',d:'쇳소리나 고무 타는 냄새가 같이 납니다.'},
+        {r:'lo',n:'냉각팬 정지 · 통풍구 막힘',d:'제어반이나 모터 주변이 전체적으로 뜨거워집니다.'}],
+    s3:['비상정지 상태와 주변 인원 대피를 확인합니다.','불꽃·연기가 계속되면 사내 화재 대응 절차를 따릅니다.',
+        '안전하게 접근할 수 있으면 해당 설비 전원을 차단하고 "조작 금지" 표지를 붙입니다.','손대지 말고 냄새·연기가 난 위치와 시각을 기록합니다.','설비가 식을 때까지 덮개·제어반을 열지 않습니다.'],
+    call:['이 상황은 점검보다 호출이 먼저입니다 — 보전 담당자와 관리자를 바로 호출합니다','전기 관련 점검은 보전 담당자만 합니다']},
+
+  C7: {code:'MC-07', level:'caution', cat:'기구', title:'볼트 풀림·진동으로 인한 위치 틀어짐 및 토크(체결) 불량', short:'볼트 풀림 · 위치 틀어짐 · 토크 불량', press:'0.50 MPa',
+    s1:{why:'볼트가 풀린 상태로 계속 돌리면 지그·부품이 떨어지거나 충돌할 수 있습니다. 심한 진동이나 이상 소음이 계속되면 즉시 비상정지합니다.',
+        act:['운전 정지 후 수동 모드로 바꿉니다.','손을 넣기 전 전원·에어를 차단합니다.','불량 의심 제품은 따로 모아 둡니다.']},
+    s2:[{r:'hi',n:'고정 볼트 풀림 (진동 누적)',d:'볼트 마킹 선이 어긋나 있으면 풀린 것입니다.'},
+        {r:'hi',n:'지그·센서 브래킷 위치 틀어짐',d:'볼트가 풀리면서 기준 위치에서 밀립니다.'},
+        {r:'mid',n:'체결 공구 토크 설정값 틀림',d:'공구 표시값이 작업 표준과 다르면 체결 불량이 납니다.'},
+        {r:'lo',n:'진동 원인 (베어링 마모, 받침 고정 불량)',d:'다시 조여도 계속 풀리면 진동 원인을 찾아야 합니다.'}],
+    s3:['불량이 처음 나온 시점과 수량을 기록하고 의심 제품을 격리합니다.','운전 정지 → 수동 모드 → 전원·에어 차단.','볼트 마킹 선이 어긋난 곳을 찾습니다.',
+        '체결 공구의 토크 설정값이 작업 표준서와 같은지 확인합니다. (설정은 바꾸지 않음)','기준 위치 표시와 실제 위치를 비교합니다.'],
+    call:['위치를 다시 세팅해야 할 때','토크 설정값을 바꿔야 할 때','다시 조여도 계속 풀릴 때']},
+
+  C8: {code:'PN-08', kb:['loto'], level:'danger', cat:'공압/잔압', title:'메인 에어 차단 후 잔압 미제거 상태에서 점검 시도', short:'잔압 미제거 상태 점검 시도', press:'잔압 확인',
+    s1:{why:'메인 에어를 잠가도 배관·에어 실린더 안에 공기가 남아 있습니다. 밸브나 호스를 건드리면 실린더가 갑자기 움직이거나 호스가 튈 수 있습니다.',
+        act:['점검을 바로 멈추고 손을 설비 밖으로 뺍니다.','잔압을 빼기 전에는 어떤 부품도 풀거나 누르지 않습니다.','다른 작업자에게도 점검 중지를 알립니다.']},
+    s2:[{r:'hi',n:'잔압 배출 밸브 미조작',d:'메인 밸브만 잠그고 배출을 안 한 경우입니다.'},
+        {r:'hi',n:'밸브 사이에 갇힌 공기',d:'밸브 종류에 따라 실린더 안에 공기가 그대로 남습니다.'},
+        {r:'mid',n:'압력 게이지 확인 누락 · 게이지 고장',d:'바늘이 0인지 보지 않았거나 게이지가 멈춰 있는 경우입니다.'},
+        {r:'lo',n:'작업 순서에 잔압 확인 단계 없음',d:'작업 표준서에 잔압 확인 항목을 넣어야 합니다.'}],
+    s3:['점검을 멈추고 손을 뺍니다.','메인 에어 밸브 잠금 상태를 확인하고 "점검 중" 표지를 붙입니다.','잔압 배출 밸브를 열고 배기 소리가 멈출 때까지 기다립니다.',
+        '압력 게이지가 0인지 확인합니다. 게이지가 여러 개면 모두 확인합니다.','무게로 내려올 수 있는 부위는 받침을 대거나 내려간 상태인지 확인합니다.'],
+    call:['배출해도 압력 게이지가 0으로 안 떨어질 때','갇힌 공기를 빼려면 밸브·배관을 풀어야 할 때','무게로 떨어질 수 있는 부위에 받침 작업이 필요할 때']},
+
+  C9: {code:'LB-09', kb:['housekeeping'], level:'caution', cat:'윤활', title:'오일 누유·윤활 부족 (바닥 기름 · 마찰음 증가)', short:'오일 누유 · 윤활 부족', press:'0.50 MPa',
+    s1:{why:'오일이 새면 바닥이 미끄러워 넘어질 수 있고, 윤활이 부족하면 마찰로 부품이 빨리 닳고 열이 납니다. 당장 위험하지는 않지만 그대로 두면 과열·고장으로 이어집니다.',
+        act:['운전 정지 후 수동 모드로 바꿉니다.','바닥 기름은 흡착포로 덮고 주변에 "미끄럼 주의" 표지를 둡니다.','가동 중 회전부에 손을 넣어 기름을 닦거나 주유하지 않습니다.']},
+    s2:[{r:'hi',n:'오일 배관·피팅 풀림',d:'연결부 바로 아래에 기름이 고여 있으면 가장 먼저 의심합니다.'},
+        {r:'hi',n:'실린더·유압 실(패킹) 마모',d:'실린더 로드에 기름 막이 묻어 나오고 아래로 떨어집니다.'},
+        {r:'mid',n:'자동 주유기 비었음·막힘',d:'주유 표시창이 비어 있거나 마찰음·쇳소리가 커집니다.'},
+        {r:'mid',n:'윤활 점검 주기 누락',d:'설비 점검표에 주유 기록이 빠져 있으면 의심합니다.'},
+        {r:'lo',n:'과다 주유로 넘침',d:'주유 직후에만 기름이 흘러내리면 의심합니다.'}],
+    s3:['기름이 고인 위치와 양, 처음 발견한 시각을 기록합니다.','운전 정지 → 전원·에어 차단 후 접근합니다.',
+        '배관 연결부·실린더 로드·감속기 주변의 누유 흔적을 눈으로 확인합니다.','자동 주유기·오일 게이지의 남은 양을 확인합니다. (주유는 정해진 작업자만)',
+        '바닥 기름을 흡착포로 처리하고 미끄럼 주의 표지를 둡니다.'],
+    call:['누유가 계속되거나 연결부를 조여야 할 때','실·패킹 교체가 필요할 때','회전부에서 열이 나거나 쇳소리가 날 때 — 과열로 이어질 수 있어 바로 호출']},
+
+  MT: {code:'MT-10', level:'caution', cat:'자재', title:'자재·부품 공급 부족 (부품 없음 · 결품)', short:'자재·부품 없음', press:'0.50 MPa', kb:['caught'],
+    s1:{why:'부품이 없는데 설비를 계속 돌리면 빈 동작을 하다 걸리거나, 급하게 손으로 부품을 넣다가 끼일 수 있습니다.',
+        act:['운전을 정지하고 자동 운전으로 다시 돌리지 않습니다.','움직이는 설비 안에 손으로 부품을 밀어 넣지 않습니다.','반장이나 물류 담당자에게 자재 공급을 요청합니다.']},
+    s2:[{n:'자재 공급 지연 · 결품'},{n:'공급 장치(피더·호퍼)에 부품이 걸려 막힘'},{n:'부품 감지 센서 오류 — 부품이 있는데 없다고 나옴'}],
+    s3:['남은 자재 수량과 멈춘 시각을 기록합니다.','정지 상태에서 공급 장치에 걸린 부품이 있는지 눈으로 봅니다.','자재가 들어오면 정해진 위치에 놓고 1사이클 시운전으로 확인합니다.','부품이 있는데도 없다고 나오면 센서 문제일 수 있으니 보전 담당자를 부릅니다.'],
+    call:['공급 장치가 막혔거나 걸린 부품을 빼야 할 때','부품이 있는데 설비가 없다고 인식할 때']},
+
+  QC: {code:'QC-11', level:'caution', cat:'품질', title:'불량이 갑자기 늘어남 (치수 · 외관 · 검사 불합격)', short:'불량 증가', press:'0.50 MPa',
+    s1:{why:'불량이 갑자기 늘면 지그·공구·설비 위치가 틀어졌다는 신호일 수 있습니다. 그대로 생산하면 불량이 쌓이고 설비 고장으로 이어질 수 있습니다.',
+        act:['운전을 정지합니다.','불량 의심 제품은 따로 모아 둡니다(격리).','불량을 고치려고 움직이는 설비 안에 손을 넣지 않습니다.']},
+    s2:[{n:'지그·고정 위치 틀어짐'},{n:'공구 마모·파손'},{n:'자재(원재료) 로트 변경·문제'},{n:'설정값 변경'}],
+    s3:['불량이 처음 나온 시각, 수량, 불량 모양을 기록합니다.','불량품과 정상품이 섞이지 않게 나눕니다.','정지·차단 후 지그와 공구 상태를 눈으로 확인합니다.','자재 로트가 바뀌었는지 확인합니다.','원인을 모르면 품질 담당자와 보전 담당자에게 알립니다.'],
+    call:['불량이 계속 나오거나 원인을 모를 때','지그 위치·설정값을 다시 맞춰야 할 때']},
+
+  PW: {code:'PW-12', level:'caution', cat:'전원', title:'정전 · 전원 꺼짐 · 기계가 안 켜짐', short:'정전 · 전원 꺼짐', press:'0.00 MPa', kb:['elec'],
+    s1:{why:'전기가 갑자기 다시 들어오면 멈춰 있던 설비가 예고 없이 움직일 수 있습니다. 전원 문제는 감전 위험도 있어 보전 담당자가 확인해야 합니다.',
+        act:['설비 운전 스위치를 정지 위치로 둡니다.','전기가 다시 들어와도 설비가 움직일 수 있으니 설비 안에 들어가지 않습니다.','차단기·두꺼비집을 직접 올리거나 내리지 않습니다.']},
+    s2:[{n:'공장 전체 정전'},{n:'해당 설비 차단기 내려감 (과부하·누전)'},{n:'비상정지 버튼이 눌려 있음'},{n:'전원 케이블·플러그 빠짐'}],
+    s3:['주변 설비도 꺼졌는지 확인합니다. (전체 정전인지)','비상정지 버튼이 눌려 있는지 확인합니다.','전원 케이블이 빠졌는지 눈으로만 확인합니다.','전기가 다시 들어오면 원점 복귀 → 1사이클 시운전부터 합니다.'],
+    call:['차단기가 내려가 있을 때 — 다시 올리기 전에 원인 확인이 필요합니다','타는 냄새나 탄 자국이 함께 있으면 바로 호출합니다']},
+
+  WT: {code:'WT-13', level:'caution', cat:'누수', title:'물·냉각수가 샘 (바닥 젖음)', short:'물·냉각수 샘', press:'0.50 MPa', kb:['elec','housekeeping'],
+    s1:{why:'물이 바닥에 고이면 미끄러지기 쉽고, 전기 설비 근처라면 감전 위험이 있습니다.',
+        act:['운전을 정지합니다.','전기 설비·전선 근처에 물이 있으면 가까이 가지 않습니다.','"미끄럼 주의" 표지를 두고 주변 작업자에게 알립니다.']},
+    s2:[{n:'냉각수 배관·호스 연결부 풀림'},{n:'냉각수 탱크 넘침'},{n:'지붕·벽 누수'},{n:'세척 후 남은 물기'}],
+    s3:['물이 어디서 나오는지 멀리서 확인하고 기록합니다.','전기 설비와 가까우면 보전 담당자에게 전원 차단을 요청합니다.','전기와 관계없는 곳이면 흡착포·밀대로 물기를 치웁니다.','배관 연결부 풀림은 눈으로만 확인합니다.'],
+    call:['물이 전기 설비·제어반 쪽으로 흐를 때 — 바로 호출','배관을 조이거나 교체해야 할 때']},
+
+  GD: {code:'GD-14', level:'danger', cat:'안전장치', title:'안전장치 고장·해제 (덮개 없음 · 안전문 · 안전 센서)', short:'안전장치 고장 · 덮개 없음', press:'0.50 MPa', kb:['caught','stopright','estop'],
+    s1:{why:'덮개·안전문·안전 센서는 사람이 다치지 않게 막는 마지막 장치입니다. 없거나 고장 난 채로 돌리면 끼임 사고로 바로 이어질 수 있습니다.',
+        act:['설비를 정지하고 가동하지 않습니다.','안전장치를 테이프·점퍼 등으로 임의로 해제하거나 우회하지 않습니다.','"사용 금지" 표지를 붙이고 관리자에게 알립니다.']},
+    s2:[{r:'hi',n:'정비 후 덮개를 다시 달지 않음',d:'정비·청소 직후라면 가장 먼저 의심합니다.'},{r:'hi',n:'안전문 스위치 고장·위치 틀어짐',d:'문을 닫아도 닫힘으로 인식하지 않습니다.'},
+        {r:'mid',n:'안전 센서(라이트 커튼) 오염·고장',d:'센서 앞이 깨끗한데도 계속 멈춥니다.'},{r:'lo',n:'누군가 임의로 해제함',d:'점퍼선·테이프·자석이 붙어 있으면 의심합니다.'}],
+    s3:['어떤 안전장치가 어떤 상태인지 기록합니다.','정지·전원 차단 후 덮개·안전문 상태를 눈으로 확인합니다.','안전장치를 고치거나 다시 다는 일은 보전 담당자가 합니다.','고친 뒤 안전장치가 제대로 작동하는지 시험한 다음 가동합니다.'],
+    call:['안전장치가 없거나 고장 난 모든 경우 — 바로 호출','안전장치를 해제하라는 지시를 받으면 관리자에게 먼저 확인합니다']},
+
+  HL: {code:'HL-15', level:'caution', cat:'몸 상태', title:'작업자 몸 상태 이상 (어지러움 · 두통 · 통증 · 피로)', short:'몸 상태 이상', press:'0.50 MPa', kb:['heat','cpr','msds'], callLabel:'관리자 호출 (가상)', callWho:'관리자', callTitle:'관리자 호출 기준',
+    verdict:'작업을 멈추고 관리자에게 알리기',
+    s1:{why:'몸 상태가 나쁘면 판단이 느려지고 실수가 늘어 사고로 이어지기 쉽습니다. 참지 말고 먼저 알리는 것이 안전입니다.',
+        act:['하던 작업을 안전하게 멈추고, 설비를 정지 상태로 둡니다.','관리자나 동료에게 몸 상태를 알립니다.','가슴 통증, 숨이 참, 한쪽 팔다리 힘 빠짐, 의식이 흐려짐이 있으면 바로 119에 신고합니다.']},
+    s2:[{n:'더위·탈수 — 땀을 많이 흘렸거나 물을 못 마심'},{n:'피로·수면 부족'},{n:'화학물질·가스 냄새를 맡은 뒤 생긴 어지러움'},{n:'평소 앓던 질환'}],
+    s3:['그늘지고 시원한 곳에서 쉬고 물을 마십니다.','화학물질 냄새를 맡고 어지럽다면 바로 그 자리를 벗어나 환기된 곳으로 갑니다.','혼자 쉬지 말고 동료가 상태를 지켜보게 합니다.','증상이 계속되거나 심해지면 병원 진료를 받습니다.'],
+    call:['쓰러지거나 의식이 흐리면 119가 먼저입니다','작업 교대가 필요하면 관리자에게 요청합니다']},
+
+  TL: {code:'TL-16', level:'caution', cat:'공구', title:'공구 파손·교체 (드릴 날 · 커터 · 비트)', short:'공구 파손 · 교체', press:'0.50 MPa', kb:['ppe','loto'],
+    s1:{why:'부러진 공구 조각이 튀거나, 공구를 바꾸다가 설비가 움직이면 다칠 수 있습니다.',
+        act:['운전을 정지하고 회전이 완전히 멈출 때까지 기다립니다.','부러진 조각을 맨손으로 줍지 않습니다.','공구 교체는 전원·에어 차단 후, 허가된 작업자만 합니다.']},
+    s2:[{n:'공구 수명 초과 · 마모'},{n:'가공 조건(속도·이송) 과다'},{n:'공작물 고정 불량'},{n:'맞지 않는 공구 사용'}],
+    s3:['부러진 시각과 공구 번호를 기록합니다.','전원·에어 차단 후 집게·솔로 조각을 치웁니다.','공구를 교체하고 고정 상태를 확인합니다.','저속 또는 1사이클 시운전으로 확인합니다.'],
+    call:['공구가 반복해서 부러질 때','가공 조건·설정값을 바꿔야 할 때']},
+
+  CH: {code:'CH-17', stops:['흐르는 물로 씻기','119 신고','관리자 알림'], level:'danger', cat:'노출', title:'화학물질·이물질 노출 (눈 · 피부 · 흡입 · 삼킴)', press:'0.50 MPa', kb:['msds','cpr'],
+    verdict:'즉시 씻기 – 119 신고 · 관리자 호출', callLabel:'관리자·보건관리자 긴급 호출 (가상)', callWho:'관리자·보건관리자', callTitle:'호출 기준',
+    chat:'[노출] 즉시 씻기 – 119 신고 · 관리자 호출\n눈·피부에 묻었으면 바로 흐르는 물로 씻고, 119와 관리자에게 알리세요.',
+    s1:{why:'화학물질은 눈·피부에 닿은 직후 몇 분이 가장 중요합니다. 바로 씻을수록 피해가 줄어듭니다. 쇳가루·칩 같은 이물질은 비비면 눈에 상처가 커집니다.',
+        act:['눈에 들어갔으면: 눈꺼풀을 벌리고 흐르는 물로 15분 이상 씻습니다. 눈을 비비지 않습니다.','피부에 묻었으면: 오염된 옷·장갑을 벗고 흐르는 물로 충분히 씻습니다.',
+             '마셨거나 냄새를 맡고 어지러우면: 바로 바깥 공기가 통하는 곳으로 옮깁니다. 삼켰으면 억지로 토하게 하지 않습니다.','칩·쇳가루가 튀었으면: 비비거나 억지로 빼지 말고 깨끗한 거즈로 가볍게 덮습니다.',
+             '119에 신고하고 관리자·보건관리자에게 알립니다.']},
+    s2:[{n:'무슨 물질인지 — 용기 라벨, MSDS 확인'},{n:'어디에 닿았는지 — 눈, 피부, 흡입, 삼킴'},{n:'다른 사람도 노출됐는지, 물질이 계속 새고 있는지'}],
+    s3:['씻는 동안 다른 사람이 119 신고와 관리자 연락을 맡습니다.','물질 용기나 MSDS를 챙겨 구급대·병원에 알려 줍니다.','물질이 계속 새면 그 구역에 다른 사람이 들어가지 않게 막습니다.','언제, 어떤 물질에, 어떻게 노출됐는지 기록합니다.'],
+    call:['눈 노출·삼킴·호흡 곤란은 증상이 가벼워 보여도 119가 먼저입니다','물질 누출 정리는 보호구를 갖춘 담당자가 합니다']},
+
+  GX: {code:'GX-18', stops:['크게 알리기','불씨·스위치 금지','밖으로 대피'], level:'danger', cat:'가스·폭발', title:'가스 누출 · 폭발음', press:'0.50 MPa', kb:['fire','confined'],
+    verdict:'즉시 대피 – 불씨·스위치 조작 금지 · 119', callLabel:'관리자·보전 담당자 긴급 호출 (가상)', callWho:'관리자·보전 담당자', callTitle:'호출 기준',
+    chat:'[가스·폭발] 즉시 대피 – 불씨·스위치 조작 금지\n주변에 알리고 밖으로 대피한 뒤 119와 관리자에게 알리세요.',
+    s1:{why:'가스가 새는 곳에서는 작은 불씨나 전기 스위치의 불꽃만으로도 폭발할 수 있습니다. 폭발음이 났다면 추가 폭발·화재 위험이 있습니다.',
+        act:['"가스 누출" 또는 "대피"라고 크게 외쳐 주변에 알립니다.','라이터·용접 등 불씨를 쓰지 않고, 전기 스위치·콘센트를 켜거나 끄지 않습니다.','바람이 불어오는 쪽(가스 반대쪽)으로 밖에 대피합니다.','안전한 곳에서 119와 관리자에게 신고합니다. 다시 들어가지 않습니다.']},
+    s2:[{n:'가스 배관·밸브·호스 연결부 누출'},{n:'가스 용기 밸브 열림·손상'},{n:'폭발음이었다면: 압력 용기·배관 파열, 분진·가스 폭발 가능성'}],
+    s3:['대피한 뒤 인원을 확인하고, 안 보이는 사람을 119에 알립니다.','구역 입구에서 다른 사람이 들어가지 못하게 막습니다.','가스 밸브 차단은 안전하게 갈 수 있고 위치를 아는 담당자만 합니다.','소방대가 안전을 확인할 때까지 재진입하지 않습니다.'],
+    call:['가스 냄새·폭발음은 점검보다 대피와 119가 먼저입니다','원인 조사는 소방·관리자 확인 후에 합니다']},
+
+  RU: {code:'RU-19', stops:['비상정지','물러나기','상위 전원 차단 요청'], level:'danger', cat:'불시 기동', title:'설비가 안 멈춤 · 갑자기 움직임 (불시 기동)', press:'0.50 MPa', kb:['estop','loto'],
+    callLabel:'관리자·보전 담당자 긴급 호출 (가상)', callWho:'관리자·보전 담당자',
+    s1:{why:'멈춰야 할 설비가 안 멈추거나 혼자 움직이면, 사람이 다가가는 순간 끼임·충돌 사고가 납니다. 비상정지 회로가 고장 났을 수도 있어 가장 위험한 상황입니다.',
+        act:['비상정지 버튼을 누릅니다. 다른 위치의 비상정지 버튼도 함께 누릅니다.','설비에서 떨어지고 주변 사람을 물러나게 합니다. 움직이는 부위에 절대 손대지 않습니다.','그래도 안 멈추면 관리자·보전 담당자에게 바로 알려 상위 전원 차단을 요청합니다.']},
+    s2:[{r:'hi',n:'비상정지 회로·접점 고장',d:'버튼을 눌러도 멈추지 않으면 가장 먼저 의심합니다.'},{r:'hi',n:'센서 오신호·제어 프로그램 오류',d:'정해진 순서와 다르게 움직이면 의심합니다.'},
+        {r:'mid',n:'수동·자동 모드 전환 오류',d:'모드를 바꾼 직후에 생기면 의심합니다.'},{r:'mid',n:'다른 사람이 원격·다른 패널에서 기동',d:'정비 중이라면 잠금(LOTO)이 빠졌을 수 있습니다.'}],
+    s3:['설비가 완전히 멈췄는지 멀리서 확인합니다.','멈춘 뒤에도 전원·에어 차단과 잠금(LOTO) 전에는 다가가지 않습니다.','언제, 어떤 동작에서 안 멈췄는지(또는 움직였는지) 기록합니다.','원인이 확인되기 전까지 "사용 금지" 표지를 붙입니다.'],
+    call:['비상정지가 듣지 않았다면 바로 호출 — 원인 확인 전 재가동 금지','설비가 혼자 움직였다면 제어 담당 보전자의 확인이 필요합니다']},
+
+  FO: {code:'FO-20', stops:['구역 벗어나기','접근 통제','다친 사람 확인'], level:'danger', cat:'낙하·붕괴', title:'낙하물 · 무너짐 (위에서 떨어짐 · 적재물 붕괴)', press:'0.50 MPa', kb:['ppe','forklift'],
+    callLabel:'관리자·보전 담당자 긴급 호출 (가상)', callWho:'관리자·보전 담당자',
+    s1:{why:'한 번 떨어지거나 무너진 곳은 더 떨어질 수 있습니다. 확인하러 가까이 가다가 2차로 다치는 경우가 많습니다.',
+        act:['그 구역에서 바로 벗어나고, 위를 올려다보며 가까이 가지 않습니다.','주변 사람이 들어오지 못하게 막습니다.','다친 사람이 있으면 119에 신고합니다.']},
+    s2:[{n:'적재 높이 초과 · 불안정하게 쌓음'},{n:'랙·선반 고정 불량'},{n:'크레인·호이스트 결속 불량'},{n:'천장 설비·배관 고정 풀림'}],
+    s3:['더 떨어질 물건이 없는지 멀리서 확인합니다.','통제선이나 표지로 구역을 막습니다.','다시 쌓거나 치우는 일은 관리자 지시에 따라 장비를 써서 합니다.','언제, 무엇이, 어디서 떨어졌는지 기록합니다.'],
+    call:['다친 사람이 있으면 119가 먼저입니다','랙·크레인·천장 설비 점검이 필요할 때']},
+
+  GM: {code:'GM-00', level:'caution', cat:'일반 오작동', title:'기계 오작동 · 원인을 모르는 이상 동작', press:'0.50 MPa', kb:['loto','estop'],
+    s1:{why:'원인을 모르는 오작동은 설비가 다음에 어떻게 움직일지 알 수 없어 위험합니다. 먼저 멈추고, 무엇이 보이고 들리는지 확인한 뒤 판단합니다.',
+        act:['운전을 정지합니다. 이상하게 움직이고 있으면 비상정지 버튼을 누릅니다.','수동 모드로 바꾸고, 설비 안에 손이나 몸을 넣지 않습니다.','화면의 알람 메시지와 번호를 그대로 적습니다.']},
+    s2:[{n:'센서 이상 — 불빛이 깜빡이거나 꺼져 있음'},{n:'공압 이상 — 바람 새는 소리, 압력 게이지가 낮음'},{n:'걸림·막힘 — 부품이 끼었거나 모터가 안 돎'},
+        {n:'통신·배선 — 특정 동작에서만 갑자기 멈춤'},{n:'설정 변경 — 품종 전환·정비 직후에만 생김'}],
+    s3:['언제부터, 어떤 동작에서 이상했는지 기록합니다.','화면의 알람 메시지를 확인합니다.','압력 게이지 숫자를 멀리서 읽습니다.',
+        '센서 불빛, 걸린 부품, 바람 소리, 냄새가 있는지 눈과 귀로 확인합니다.','증상이 보이면 아래 "어떤 증상에 가까운가요?"에서 골라 자세한 안내를 봅니다.'],
+    call:['원인을 모르겠거나 같은 오작동이 반복되면 바로 호출합니다','설정·프로그램 변경이 의심되면 보전 담당자에게 확인을 요청합니다']},
+
+  INJ: {code:'IN-00', stops:['비상정지','119 신고','관리자 알림'], kb:['cpr'], level:'danger', cat:'부상', title:'작업자 부상 (끼임 · 베임 · 깔림 · 떨어짐 · 부딪힘)', callLabel:'관리자·보전 담당자 긴급 호출 (가상)', callWho:'관리자·보전 담당자', callTitle:'호출 기준', press:'0.50 MPa',
+    verdict:'즉시 정지 – 119 신고 · 관리자 호출', chat:'[부상] 즉시 정지 – 119 신고 · 관리자 호출\n설비보다 사람이 먼저입니다. 비상정지 후 119와 관리자에게 바로 알리세요.',
+    s1:{why:'사람이 다쳤을 때는 원인 점검보다 구조와 신고가 먼저입니다. 설비가 다시 움직이면 부상자와 구조하는 사람이 함께 다칠 수 있습니다.',
+        act:['비상정지 버튼을 누르고 전원·에어가 차단됐는지 확인합니다.','119에 신고합니다. 공장 이름, 라인·설비 위치, 다친 부위를 말합니다.',
+             '관리자와 보건관리자에게 바로 알립니다.','끼인 신체를 억지로 빼거나 설비를 임의로 역방향 조작하지 않습니다. 119와 보전 담당자 지시를 따릅니다.',
+             '감전이 의심되면 전원이 차단되기 전에는 맨손으로 만지지 않습니다.']},
+    s2:[{n:'부상자 상태: 의식, 호흡, 출혈, 다친 부위'},{n:'2차 위험: 전원·에어·회전부·뜨거운 부위가 아직 살아 있는지'},{n:'주변 작업자 접근 통제가 됐는지'}],
+    s3:['비상정지·전원·에어 차단 상태를 다시 확인합니다.','119 신고와 관리자 연락이 됐는지 확인합니다.',
+        '응급처치는 교육받은 범위에서만 합니다. 출혈은 깨끗한 천으로 눌러 지혈합니다.','구급대가 들어올 길을 비우고 주변 작업자의 접근을 막습니다.',
+        '사고 위치·시각·상황을 기록하고, 원인 조사 전까지 현장을 보존합니다.'],
+    call:['부상자가 있으면 점검보다 신고·호출이 먼저입니다 — 119, 관리자, 보전 담당자를 바로 부릅니다','사업장 사고 보고 절차를 따릅니다']},
+
+  GENERAL: {code:'GN-00', cat:'일반', title:'해당 계열 없음 (판단 불가)', press:'0.50 MPa',
+    s1:{why:'어떤 이상인지 확실하지 않으면 안전한 쪽으로 판단합니다.',
+        act:['설비를 정지 상태로 둡니다.','보이는 것, 들리는 소리, 냄새, 화면 알람을 적어 둡니다.']},
+    s2:[{n:'입력 내용만으로는 원인 후보를 정할 수 없습니다.'},{n:'"쉬익 소리", "센서 깜빡임", "과열", "미파지 알람"처럼 증상을 적어 주세요.'}],
+    s3:['정지 상태 유지','알람 번호와 증상 기록','증상을 다시 입력하거나 빠른 상황 선택·사례 목록 사용'],
+    call:['처음 보는 증상이거나 판단이 어려우면 바로 호출합니다']}
+};
+const CASE_GROUPS = [
+  {lv:'danger',  title:'위험 · 즉시 정지',     keys:['C1','C3','C6','C8']},
+  {lv:'caution', title:'주의 · 수동 점검', keys:['C4','C5','C7','C9']}
+];
+const CASE_KEYS = CASE_GROUPS.flatMap(g => g.keys);   // SN-02(센서)는 목록에서 뺐지만 직접 입력 판별에는 계속 사용
+
+/* =========================================================
+   4. 실제 사례 근거 (예방 교훈 설명용 요약 — 명세 상수 그대로)
+   ========================================================= */
+const EVIDENCE = {
+  CASE_RUNNING_CLEANING: '식품 가공 설비에서 전원을 켠 상태로 청소·이물질 제거 중 회전부에 끼여 사망한 재해들. 요인은 운전 중 청소, 운전정지 미실시, 방호 미흡. 교훈: 점검·청소 전에는 반드시 정지하고 전원을 차단한다.',
+  CASE_EMERGENCY_STOP_POSITION: '컨베이어·세척 설비 재해에서 비상정지장치 설치 위치가 부적절했다는 점이 요인으로 지적된 사례들. 교훈: 비상정지는 바로 누를 수 있는 위치에 있어야 한다.',
+  CASE_UNEXPECTED_START: '사출성형기에서 안전문을 열고 조작하던 중 전원이 공급되며 금형이 전진해 끼여 사망한 재해. 교훈: 불시 기동 방지, 임의 재가동 금지.',
+  CASE_MAINTENANCE_STAT: '공단 연구자의 2016~2019년 중대재해 조사보고서 분석에서 끼임 사고의 약 절반이 수리·정비 중 발생했고 방호조치 미흡이 문제로 지적됨. 교훈: 점검·정비 중이 가장 위험한 시간이다.'
+};
+const EVIDENCE_MAP = {
+  danger:['CASE_UNEXPECTED_START','CASE_EMERGENCY_STOP_POSITION'],
+  caution:['CASE_RUNNING_CLEANING','CASE_MAINTENANCE_STAT'],
+  general:['CASE_MAINTENANCE_STAT']
+};
+const EVIDENCE_SOURCE = '출처: 한국산업안전보건공단 재해사례 계열 자료';
+const EVIDENCE_NOTE = '※ 사례는 예방 교훈 설명용 요약입니다. 원문은 한국산업안전보건공단 자료 참고';
+
+/* =========================================================
+   4-1. 산업안전 질문 → 쉬운 설명 카드 (일반 안전수칙 요약)
+   kw: 질문에 들어갈 만한 말 · related: 관련 현장 사례 버튼
+   ========================================================= */
+const KB = [
+  {id:'loto', title:'LOTO (잠금·표지)', kw:['loto','로토','잠금장치','잠금 장치','록아웃','lockout','태그아웃','에너지 차단','에너지차단','잠금 표지'],
+   summary:'점검·수리·청소 전에 전원·에어 같은 에너지를 끊고, 자물쇠(Lock)와 표지(Tag)를 달아 다른 사람이 실수로 켜지 못하게 하는 절차입니다.',
+   points:['작업 전에 관계자에게 알리고 설비를 정지합니다.','전원·에어·유압 등 모든 에너지원을 차단합니다.','내 자물쇠와 "조작 금지" 표지를 직접 답니다.','잔압·남은 전기를 빼고 게이지가 0인지 확인합니다.','기동 버튼을 눌러 정말 안 켜지는지 확인한 뒤 작업합니다.','작업이 끝나면 자물쇠를 건 사람이 직접 풉니다.'],
+   warn:'다른 사람의 자물쇠나 표지를 대신 풀지 않습니다.', related:['C8','C3']},
+  {id:'caught', title:'끼임 사고 예방', kw:['끼임 예방','끼임 사고','끼임사고','끼이지','말려 들어','말려들','회전체','방호장치','방호 장치','방호 덮개','방호덮개'],
+   summary:'끼임 사고는 설비가 움직이는 중에 손을 넣거나, 멈춘 줄 알았던 설비가 다시 움직일 때 많이 일어납니다.',
+   points:['점검·청소·걸림 제거 전에는 반드시 정지하고 잠금(LOTO)합니다.','방호 덮개·안전 센서를 임의로 떼거나 끄지 않습니다.','회전부 근처에서는 헐렁한 옷, 풀린 긴 머리, 장갑이 말려 들어가지 않게 주의합니다.','걸린 물건은 손 대신 집게 같은 공구로 뺍니다.'],
+   related:['C3']},
+  {id:'ppe', title:'보호구 착용', kw:['보호구','장갑','안전모','안전화','보안경','보안면','귀마개','방진','방독','안전대','ppe','헬멧','작업복'],
+   summary:'보호구는 작업에 맞는 것을, 바르게 착용해야 효과가 있습니다.',
+   points:['안전모: 떨어지는 물건·머리 부딪힘에 대비하고 턱끈까지 조입니다.','안전화: 무거운 물건, 날카로운 바닥에서 발을 보호합니다.','보안경·보안면: 칩이나 액체가 튀는 작업에 씁니다.','귀마개: 소음이 큰 곳에서 씁니다.','방진·방독 마스크: 분진이나 유해가스가 있는 곳에서 씁니다.','높은 곳에서는 안전대(안전벨트)를 걸고 작업합니다.'],
+   warn:'회전하는 기계 근처에서는 장갑이 말려 들어갈 수 있어 장갑 착용을 금지하는 작업이 있습니다. 사업장 기준을 따르세요.'},
+  {id:'stopright', title:'작업중지권', kw:['작업중지권','작업 중지권','작업중지','작업 중지','일을 멈춰도','작업 거부','멈춰도 되','대피해도'],
+   summary:'급박한 위험이 있으면 작업자는 스스로 작업을 멈추고 대피할 수 있습니다. 이것을 이유로 불이익을 주는 것은 금지됩니다.',
+   points:['위험하다고 느끼면 먼저 멈추고 안전한 곳으로 대피합니다.','바로 관리자에게 알립니다.','2026년 10월 국회를 통과한 산업안전보건법 개정안은 작업중지 요구 범위를 "급박한 위험이 우려되는 경우"까지 넓혔습니다.'],
+   related:[]},
+  {id:'serious', title:'중대재해처벌법', kw:['중대재해','중처법','처벌법'],
+   summary:'사망사고 같은 중대산업재해가 났을 때, 안전보건 확보 의무를 다하지 않은 경영책임자를 처벌할 수 있게 한 법입니다.',
+   points:['2022년 1월부터 시행됐고, 2024년 1월부터는 5~49인 사업장까지 적용됩니다.','핵심은 회사가 안전보건관리체계를 만들고 실제로 운영하는 것입니다.','작업자는 위험을 발견하면 숨기지 말고 바로 보고합니다.']},
+  {id:'risk', title:'위험성평가', kw:['위험성평가','위험성 평가','위험 평가','위험요인','유해위험요인'],
+   summary:'일터의 위험요인을 찾고, 얼마나 위험한지 따져서, 줄이는 대책을 세우고 실행하는 활동입니다.',
+   points:['위험요인 찾기 → 위험성 정하기 → 줄이는 대책 세우고 실행 → 기록하고 공유하기 순서입니다.','2026년 6월 시행된 개정법은 근로자 참여와 결과 공유·기록 보존을 강조합니다.','ORBIT의 "기록" 화면에 쌓인 판별·호출 기록은 현장 의견을 모으는 참고 자료로 쓸 수 있습니다.']},
+  {id:'nearmiss', title:'아차사고 보고', kw:['아차사고','아차 사고','다칠 뻔','사고 날 뻔','날 뻔','뻔했'],
+   summary:'다치지는 않았지만 다칠 뻔한 일을 "아차사고"라고 합니다. 큰 사고 전에는 이런 일이 여러 번 먼저 일어납니다.',
+   points:['다칠 뻔한 일도 바로 관리자에게 보고합니다.','언제, 어디서, 무엇 때문에 그랬는지 적습니다.','같은 위험이 다시 생기지 않게 대책을 함께 정합니다.']},
+  {id:'fire', title:'화재 대응 · 소화기 사용법', kw:['소화기','화재 시','화재시','불나면','불 나면','불이 나면','화재가 나면','화재 대피','대피 방법','대피요령','대피 요령','소화전'],
+   summary:'작은 불은 소화기로 끄고, 불이 커지거나 연기가 많으면 바로 대피하는 것이 원칙입니다.',
+   points:['"불이야" 하고 크게 외치고 비상벨을 누릅니다.','119에 신고합니다.','소화기: 안전핀 뽑기 → 노즐을 불 쪽으로 → 손잡이 꽉 누르기 → 빗자루로 쓸듯이 뿌리기.','연기가 많으면 젖은 천으로 코와 입을 막고 낮은 자세로 대피합니다.','엘리베이터 대신 계단으로 나갑니다.'],
+   warn:'전기 설비 화재에는 물을 뿌리지 않습니다.', related:['C6']},
+  {id:'elec', title:'감전 예방', kw:['감전 예방','감전','전기 작업','전기작업','누전','접지','전기 안전'],
+   summary:'감전은 순간적으로 큰 사고가 되므로, 전기 작업은 전원을 끄고 자격 있는 사람만 합니다.',
+   points:['젖은 손으로 스위치·플러그를 만지지 않습니다.','전기 작업은 자격 있는 사람이 전원 차단·잠금 후에 합니다.','피복이 벗겨진 전선, 탄 자국이 보이면 사용을 멈추고 보고합니다.','감전된 사람은 맨손으로 만지지 말고 전원부터 차단합니다.'],
+   related:['C5','C6']},
+  {id:'fall', title:'추락 예방', kw:['추락','떨어질','높은 곳','고소작업','고소 작업','사다리','안전난간','작업발판','개구부'],
+   summary:'높은 곳 작업은 떨어지지 않게 막는 설비와 안전대가 함께 있어야 합니다.',
+   points:['높은 곳(2m 이상)에서는 작업발판과 안전난간을 설치합니다.','안전대를 단단한 곳에 걸고 작업합니다.','사다리는 2인 1조로, 맨 위 칸에 서지 않습니다.','바닥 구멍(개구부)은 덮개를 덮고 표시합니다.']},
+  {id:'forklift', title:'지게차 안전', kw:['지게차','포크리프트','forklift','운반차'],
+   summary:'지게차 사고는 부딪힘, 깔림, 넘어짐이 많습니다. 운전자와 보행자 모두 수칙을 지켜야 합니다.',
+   points:['자격 있는 사람만 운전하고 안전벨트를 맵니다.','정해진 속도를 지킵니다.','짐이 앞을 가리면 후진하거나 유도자를 둡니다.','포크는 낮게 하고 다니며, 사람을 태우지 않습니다.','보행자는 지게차 통로에 들어가지 않습니다.']},
+  {id:'confined', title:'밀폐공간 작업', kw:['밀폐공간','밀폐 공간','맨홀','탱크 안','저장조','질식','산소 결핍','산소결핍','유해가스'],
+   summary:'탱크, 맨홀 같은 밀폐공간은 산소가 부족하거나 유해가스가 차 있어, 들어가자마자 쓰러질 수 있습니다.',
+   points:['산소·유해가스 농도를 측정하기 전에는 들어가지 않습니다.','충분히 환기합니다.','밖에서 지켜보는 감시인을 둡니다.','필요하면 송기마스크를 씁니다.'],
+   warn:'쓰러진 사람을 구하려고 보호장비 없이 들어가지 않습니다. 구하러 간 사람도 쓰러지는 사고가 많습니다. 먼저 119에 신고합니다.'},
+  {id:'lifting', title:'무거운 물건 들기 · 허리 보호', kw:['중량물','무거운','허리','근골격','들어 올','들어올','요통','어깨가 아'],
+   summary:'무거운 물건을 잘못 들면 허리·어깨를 다치기 쉽습니다.',
+   points:['무릎을 굽히고 허리를 편 채, 물건을 몸 가까이 붙여 듭니다.','든 상태로 허리를 비틀지 않습니다.','무거우면 2명이 들거나 대차·호이스트 같은 보조기구를 씁니다.','쉬는 시간에 스트레칭을 합니다.']},
+  {id:'heat', title:'폭염 · 열사병 예방', kw:['물 마셔','물을 마셔','물 먹어','폭염','열사병','더위','온열','더워','열탈진','열경련'],
+   summary:'더운 곳에서 오래 일하면 열사병이 올 수 있고, 심하면 생명이 위험합니다.',
+   points:['목이 마르지 않아도 물을 자주 마십니다.','그늘에서 규칙적으로 쉽니다.','어지러움, 두통, 구토, 몸이 뜨겁고 땀이 안 나는 증상이 있으면 바로 알립니다.','의심되면 시원한 곳으로 옮기고 옷을 느슨하게 해 몸을 식힙니다. 의식이 흐리면 119.']},
+  {id:'cpr', title:'응급처치 · 심폐소생술', kw:['심폐소생','cpr','응급처치','응급 처치','aed','제세동','쓰러지면','쓰러졌을 때','쓰러졌을때'],
+   summary:'사람이 쓰러지면 119 신고와 가슴압박을 빨리 시작하는 것이 가장 중요합니다.',
+   points:['어깨를 두드리며 크게 불러 반응을 확인합니다.','주변 사람을 지목해 119 신고와 AED(자동심장충격기)를 부탁합니다.','반응이 없고 숨을 안 쉬거나 이상하게 쉬면 가슴 가운데를 분당 100~120회, 약 5cm 깊이로 누릅니다.','AED가 오면 켜고 음성 안내를 따릅니다.','구급대가 올 때까지 멈추지 않습니다.'],
+   warn:'교육받은 범위에서 하고, 119 상담원 안내를 따르세요.', related:['INJ']},
+  {id:'msds', title:'MSDS (물질안전보건자료)', kw:['msds','물질안전보건자료','화학물질','화학 물질','약품','유해물질','세척제','유기용제'],
+   summary:'화학물질이 얼마나 위험한지, 어떻게 다루는지, 묻었을 때 어떻게 하는지 적힌 자료입니다.',
+   points:['작업장에 비치된 MSDS 위치를 알아 둡니다.','처음 쓰는 물질은 MSDS를 먼저 확인합니다.','눈이나 피부에 묻으면 흐르는 물로 충분히 씻고 MSDS의 응급조치를 확인합니다.','용기에 붙은 경고 표지를 떼지 않습니다.']},
+  {id:'noise', title:'소음 작업', kw:['소음 작업','소음작업','청력','귀가 아','귀가 먹','시끄러운 곳','난청'],
+   summary:'큰 소음에 오래 노출되면 청력이 서서히 떨어지고, 한번 떨어진 청력은 잘 회복되지 않습니다.',
+   points:['소음이 큰 곳에서는 귀마개나 귀덮개를 씁니다.','귀마개는 손을 깨끗이 하고 끝까지 끼웁니다.','귀가 멍하거나 울리는 증상이 계속되면 알립니다.']},
+  {id:'estop', title:'비상정지 버튼 사용', kw:['비상정지 버튼','비상 정지 버튼','비상정지는 언제','비상정지 언제','비상정지 어디','비상정지 위치','비상정지 눌러도'],
+   summary:'비상정지 버튼은 사람이 다칠 것 같거나 설비가 이상할 때 누구나 바로 누르는 버튼입니다.',
+   points:['위험하다고 느끼면 망설이지 말고 누릅니다.','내 자리 주변 비상정지 버튼 위치를 미리 알아 두고, 앞을 물건으로 막지 않습니다.','누른 뒤에는 원인을 확인하기 전까지 해제·재가동하지 않습니다.','해제는 보전 담당자 확인 후에 합니다.']},
+  {id:'training', title:'안전교육', kw:['신입','처음 해','처음 하는','처음이','안전교육','안전 교육','신규 교육','교육 받아','교육받아'],
+   summary:'처음 일을 시작할 때와 작업 내용이 바뀔 때는 그 작업의 위험과 수칙을 먼저 배워야 합니다.',
+   points:['교육받지 않은 작업은 하지 않습니다.','이해가 안 되면 다시 물어봅니다.','외국인 노동자는 이해할 수 있는 언어로 설명해 달라고 요청합니다.','교육 내용은 현장에서 바로 확인할 수 있게 작업 표준서를 가까이 둡니다.']},
+  {id:'housekeeping', title:'정리정돈 · 넘어짐 예방', kw:['정리정돈','정리 정돈','5s','통로','넘어짐','넘어지','미끄럼'],
+   summary:'통로에 물건이 있거나 바닥이 미끄러우면 넘어지는 사고가 납니다.',
+   points:['통로와 비상구 앞에는 물건을 두지 않습니다.','바닥의 기름·물은 바로 닦고 미끄럼 주의 표지를 둡니다.','전선·호스는 정리해서 걸려 넘어지지 않게 합니다.'],
+   related:['C9']}
+];
+KB.push({id:'restart', title:'정상 확인 후 재가동 절차', kw:['재가동 절차','재가동 순서','다시 돌려도','다시 켜도','재가동해도','재가동 해도','다시 가동해도'],
+   summary:'고쳤거나 정상으로 보여도, 다시 돌리기 전에 아래 순서를 지켜야 안전합니다.',
+   points:['설비 안에 공구·부품·사람이 없는지 확인합니다.','떼어 낸 덮개·안전문을 원래대로 닫습니다.','잠금장치(LOTO)는 건 사람이 직접 풉니다.','주변 작업자에게 재가동을 알립니다.','저속 또는 1사이클 시운전으로 확인하고, 이상하면 즉시 비상정지합니다.','무엇을 고쳤는지 기록합니다.'],
+   warn:'위험 판별로 화면이 잠긴 경우에는 보전 담당자 비밀번호 확인이 먼저입니다.'});
+/* ---------- 안전 설명 주제 추가 (기계·전기·화학·보건·응급·제도) ---------- */
+KB.push(
+  {id:'press', title:'프레스·전단기 안전', kw:['프레스','전단기','절단기','금형','펀칭','안전블록','양수조작'],
+   summary:'프레스는 순식간에 내려와 손 끼임·절단 사고가 많은 설비입니다. 방호장치를 끄거나 손을 금형 사이에 넣는 순간 사고가 납니다.',
+   points:['광전자식 센서·양수조작 버튼 같은 방호장치를 끄거나 고정하지 않습니다.','금형 사이에 손을 넣지 말고, 수공구(집게)로 자재를 넣고 뺍니다.','금형 교체·청소 때는 전원 차단·잠금 후 안전블록을 받칩니다.','페달은 덮개가 있는 것을 쓰고, 발을 올려 둔 채로 작업하지 않습니다.'],
+   related:['C3'], see:['loto','caught']},
+  {id:'crane', title:'크레인·호이스트 작업', kw:['크레인','호이스트','줄걸이','슬링','와이어로프','인양','매단','체인블록','양중'],
+   summary:'크레인 사고는 짐이 떨어지거나 흔들려 부딪히는 경우가 많습니다. 매단 짐 아래는 절대 들어가지 않습니다.',
+   points:['작업 전 와이어로프·슬링·훅의 손상과 해지장치를 확인합니다.','정해진 무게(정격하중)를 넘겨 들지 않습니다.','매단 짐 아래로 지나가거나 서 있지 않습니다.','신호수 한 명을 정하고, 정해진 신호로만 움직입니다.','자격·교육을 받은 사람만 조작합니다.'],
+   related:['FO'], see:['ppe','fall']},
+  {id:'robot', title:'산업용 로봇 주변 작업', kw:['로봇 작업','로봇 근처','로봇 안전','로봇 주변','교시','티칭','펜던트','방책','안전 펜스','협동로봇'],
+   summary:'로봇은 멈춰 있어도 신호 하나로 갑자기 빠르게 움직일 수 있습니다. 방책 안은 가장 위험한 구역입니다.',
+   points:['운전 중에는 방책(펜스) 안에 들어가지 않습니다.','교시(티칭) 작업은 저속 모드에서, 인에이블 스위치를 쥐고 합니다.','방책 안에 들어갈 때는 잠금(LOTO)하고, 열쇠를 직접 가지고 들어갑니다.','로봇이 멈춰 있다고 대기 중인지 정지인지 짐작하지 않습니다.'],
+   related:['RU'], see:['loto','estop']},
+  {id:'grinder', title:'연삭기·그라인더', kw:['연삭','그라인더','숫돌','디스크 그라인더','핸드 그라인더','절단석'],
+   summary:'숫돌이 깨지면 파편이 총알처럼 튑니다. 덮개와 보안경 없이 쓰지 않습니다.',
+   points:['숫돌 덮개를 떼지 않습니다.','숫돌에 금이 갔는지 확인하고, 교체 후에는 1분 정도 시운전합니다.','시운전할 때는 숫돌 정면이 아닌 옆에 섭니다.','보안경·보안면을 쓰고, 불티가 튀는 방향에 사람·가연물이 없게 합니다.'],
+   see:['ppe','welding']},
+  {id:'hydraulic', title:'유압 장치 안전', kw:['유압','유압유','유압 호스','작동유','실린더 유압'],
+   summary:'유압은 공압보다 힘이 훨씬 세고, 새는 기름이 고압으로 뿜어져 피부를 뚫을 수 있습니다.',
+   points:['손으로 더듬어 누유 위치를 찾지 않습니다. 종이나 판으로 확인합니다.','정비 전에는 펌프를 멈추고 잔압을 빼서 압력이 0인지 확인합니다.','무게로 내려올 수 있는 실린더·지그는 받침을 댄 뒤 작업합니다.','고압유가 피부에 들어간 것 같으면 작아 보여도 바로 병원에 갑니다.'],
+   related:['C9','C8'], see:['loto']},
+  {id:'handtool', title:'수공구·칼 사용', kw:['수공구','망치','커터칼','커터 칼','스패너','드라이버','몽키','칼 사용','공구 사용'],
+   summary:'수공구 사고는 대부분 맞지 않는 공구를 쓰거나 몸 쪽으로 힘을 줄 때 생깁니다.',
+   points:['작업에 맞는 공구를 쓰고, 손상된 공구는 쓰지 않습니다.','칼은 몸 반대 방향으로 쓰고, 쓰고 나면 날을 집어넣습니다.','공구를 높은 곳에 올려 두지 않고, 던져서 주고받지 않습니다.','전동공구는 쓰기 전에 전선·플러그 상태를 확인합니다.'],
+   see:['ppe']},
+  {id:'welding', title:'용접·화기작업', kw:['용접','화기작업','화기 작업','불티','산소절단','가스절단','토치','납땜'],
+   summary:'용접 불티는 멀리 튀어 몇 시간 뒤에 불이 나기도 합니다. 화기작업은 허가와 준비가 먼저입니다.',
+   points:['화기작업 허가를 받고, 주변 가연물을 치우거나 불티 방지포로 덮습니다.','소화기를 가까이 두고, 필요하면 화재감시자를 둡니다.','차광 보안면·용접 장갑을 쓰고, 환기를 합니다.','작업이 끝난 뒤에도 30분 이상 불씨가 남았는지 살핍니다.'],
+   related:['C6'], see:['fire','permit']},
+  {id:'dust', title:'분진·먼지 작업', kw:['분진','먼지','방진 마스크','방진마스크','가루','파우더'],
+   summary:'눈에 안 보이는 미세한 분진도 오래 마시면 폐에 쌓여 병이 됩니다.',
+   points:['국소배기장치(후드)를 켜고 작업합니다.','방진 마스크를 얼굴에 빈틈없이 밀착해 씁니다.','에어건으로 먼지를 불지 말고, 진공청소기나 물걸레로 치웁니다.','작업복은 털어 입지 말고 정해진 곳에서 갈아입습니다.'],
+   see:['ppe']},
+  {id:'solvent', title:'유기용제 (시너·세척제 등)', kw:['유기용제','시너','신나','톨루엔','아세톤','본드','접착제','솔벤트'],
+   summary:'유기용제는 증기를 마시면 어지럽고, 불이 붙기 쉽습니다.',
+   points:['환기가 되는 곳에서만 쓰고, 국소배기장치를 켭니다.','근처에서 불씨·담배를 쓰지 않습니다.','쓰지 않을 때는 뚜껑을 꼭 닫습니다.','두통·어지러움이 오면 바로 바깥 공기가 통하는 곳으로 나갑니다.'],
+   related:['CH'], see:['msds','storage']},
+  {id:'storage', title:'화학물질 보관·취급', kw:['화학물질 보관','약품 보관','보관 방법','섞어도','혼합해도','소분','라벨','경고표지','그림문자'],
+   summary:'화학물질은 섞이면 열·가스가 나는 경우가 있어, 정해진 용기와 장소에 나눠 보관합니다.',
+   points:['원래 용기를 쓰고, 다른 용기에 옮기면 물질 이름과 경고 표지를 붙입니다.','서로 반응하는 물질(산과 알칼리 등)은 따로 보관합니다.','음료수 병에 옮겨 담지 않습니다.','새거나 넘친 것은 흡착포로 처리하고, 보호구를 착용합니다.'],
+   related:['CH'], see:['msds','solvent']},
+  {id:'bleeding', title:'출혈·절단 응급처치', kw:['지혈','출혈 응급','피가 나면','절단 응급','잘린 손가락','절단된'],
+   summary:'피가 많이 나면 상처를 세게 눌러 지혈하는 것이 가장 먼저입니다.',
+   points:['119에 신고합니다.','깨끗한 천이나 거즈로 상처를 세게 누릅니다. 피가 배어도 떼지 말고 위에 덧댑니다.','절단된 부위는 깨끗한 천으로 싸서 비닐에 넣고, 그 비닐을 차가운 물·얼음에 담가 병원에 같이 가져갑니다. 얼음에 직접 닿지 않게 합니다.','다친 사람을 눕히고 체온이 떨어지지 않게 덮어 줍니다.'],
+   related:['INJ'], see:['cpr']},
+  {id:'burn', title:'화상 응급처치', kw:['화상','데었을 때','데이면','뜨거운 물에','화상 응급'],
+   summary:'화상은 바로 식히는 것이 가장 중요합니다.',
+   points:['흐르는 시원한 물로 10분 이상 충분히 식힙니다.','얼음을 직접 대지 않습니다.','물집을 터뜨리지 않고, 깨끗한 거즈로 가볍게 덮습니다.','반지·시계는 붓기 전에 뺍니다.','넓은 부위, 얼굴·손, 화학·전기 화상은 바로 병원(119)으로 갑니다.'],
+   related:['INJ'], see:['fire','elec']},
+  {id:'eyewash', title:'비상샤워·세안기', kw:['세안기','비상샤워','비상 샤워','눈 씻는','세척 샤워','아이워시'],
+   summary:'화학물질을 다루는 곳에는 눈과 몸을 바로 씻을 수 있는 세안기·비상샤워가 있어야 합니다.',
+   points:['내 작업장의 세안기·비상샤워 위치를 미리 알아 둡니다.','앞을 물건으로 막지 않습니다.','눈에 들어가면 눈꺼풀을 벌리고 15분 이상 씻습니다.','물이 잘 나오는지 정기적으로 확인합니다.'],
+   related:['CH'], see:['msds']},
+  {id:'cold', title:'한파·한랭 작업', kw:['한파','추위','동상','한랭','저체온','추운 곳','냉동창고'],
+   summary:'추운 곳에서 오래 일하면 손발이 둔해져 사고가 늘고, 동상·저체온증이 올 수 있습니다.',
+   points:['겹쳐 입고, 장갑·모자로 손과 머리를 따뜻하게 합니다.','따뜻한 물을 자주 마시고, 따뜻한 곳에서 쉽니다.','손발이 하얗게 되거나 감각이 없으면 바로 알립니다.','떨림이 심하고 말이 어눌해지면 저체온증일 수 있으니 119.'],
+   see:['heat']},
+  {id:'fatigue', title:'피로·야간·교대 근무', kw:['피로','피곤','야간','교대','졸음','졸릴 때','밤샘','수면'],
+   summary:'졸리거나 지친 상태에서는 판단이 늦어져 사고가 크게 늘어납니다.',
+   points:['졸리면 참지 말고 관리자에게 알리고 잠깐 쉽니다.','위험한 작업(고소·기계 조작)은 피곤할 때 혼자 하지 않습니다.','휴식 시간에는 실제로 쉽니다.','퇴근길 졸음운전도 조심합니다.'],
+   related:['HL'], see:['heat']},
+  {id:'tbm', title:'TBM (작업 전 안전 회의)', kw:['tbm','툴박스','작업 전 회의','작업전 회의','아침 회의','조회'],
+   summary:'TBM은 작업을 시작하기 전에 짧게 모여 오늘 작업의 위험과 대책을 함께 확인하는 회의입니다.',
+   points:['오늘 할 작업과 그 작업의 위험을 짧게 이야기합니다.','누가 무엇을 할지, 어떤 보호구가 필요한지 정합니다.','몸 상태가 나쁜 사람이 있는지 확인합니다.','5~10분 정도로 짧게, 매일 합니다.'],
+   see:['risk','nearmiss']},
+  {id:'permit', title:'작업허가제', kw:['작업허가','작업 허가','허가서','안전작업허가','위험작업 허가'],
+   summary:'화기작업, 밀폐공간, 높은 곳, 전기 작업처럼 위험한 작업은 시작 전에 허가를 받고 안전조치를 확인합니다.',
+   points:['허가 없이 위험작업을 시작하지 않습니다.','허가서에 적힌 안전조치(가스 측정, 전원 차단 등)가 실제로 됐는지 확인합니다.','작업이 바뀌거나 허가 시간이 지나면 다시 허가를 받습니다.','작업이 끝나면 현장을 정리하고 허가를 닫습니다.'],
+   see:['welding','confined','fall','elec']},
+  {id:'signs', title:'안전표지 색깔 읽는 법', kw:['안전표지','안전 표지','표지판','표지 색','빨간 표지','노란 표지','파란 표지','초록 표지'],
+   summary:'안전표지는 색깔과 모양만 봐도 뜻을 알 수 있게 만들어져 있습니다.',
+   points:['빨간색 원·사선: 금지 (출입 금지, 화기 금지 등)','노란색 삼각형: 경고 (고압 전기, 낙하물 주의 등)','파란색 원: 지시 (보안경 착용, 안전모 착용 등)','초록색: 안내 (비상구, 응급구호 등)'],
+   see:['training','foreign']},
+  {id:'exits', title:'비상구·대피로', kw:['비상구','대피로','대피 경로','대피 장소','집결지','비상 대피'],
+   summary:'불이 나거나 가스가 새면 몇 분 안에 밖으로 나가야 합니다. 대피로는 미리 알아 둡니다.',
+   points:['내 자리에서 가장 가까운 비상구 두 곳을 알아 둡니다.','비상구와 통로 앞에 물건을 쌓지 않습니다.','대피 후에는 정해진 집결지에 모여 인원을 확인합니다.','대피 훈련에 빠지지 않습니다.'],
+   related:['GX'], see:['fire','earthquake']},
+  {id:'earthquake', title:'지진 대응', kw:['지진','흔들림','건물이 흔들'],
+   summary:'흔들리는 동안에는 몸을 보호하고, 흔들림이 멈추면 밖으로 대피합니다.',
+   points:['흔들리면 설비를 멈추고, 튼튼한 탁자 아래나 기둥 옆에서 머리를 보호합니다.','랙·선반·유리창에서 멀리 떨어집니다.','흔들림이 멈추면 계단으로 넓은 곳에 대피합니다. 엘리베이터는 쓰지 않습니다.','가스·전기 누출이 없는지 확인한 뒤 들어갑니다.'],
+   see:['exits']},
+  {id:'report', title:'사고 났을 때 보고 절차', kw:['사고 보고','보고 절차','사고 나면 누구','누구한테 알려','누구에게 알려','사고 처리'],
+   summary:'사고가 나면 사람을 먼저 챙기고, 바로 알리고, 현장을 그대로 두는 것이 순서입니다.',
+   points:['다친 사람이 있으면 119가 먼저입니다.','관리자에게 바로 알립니다. 작은 사고도 숨기지 않습니다.','원인을 조사할 수 있게 현장을 함부로 치우지 않습니다.','언제, 어디서, 무엇이, 어떻게 됐는지 기록합니다.'],
+   see:['nearmiss','comp']},
+  {id:'comp', title:'산재(산업재해) 신청', kw:['산재','산업재해','산재보험','보상','근로복지공단','치료비'],
+   summary:'일하다 다치거나 병이 생기면 산재보험으로 치료비와 쉬는 동안의 급여 일부를 받을 수 있습니다.',
+   points:['다친 사실과 상황을 바로 관리자에게 알리고 기록을 남깁니다.','병원 진료를 받고 진단서를 받습니다.','근로복지공단에 산재를 신청합니다. 회사가 확인해 주지 않아도 본인이 직접 신청할 수 있습니다.','잘 모르면 근로복지공단이나 노무사에게 상담합니다.'],
+   see:['report']},
+  {id:'foreign', title:'외국인 노동자 안전', kw:['외국인','통역','모국어','한국어 몰라','말이 안 통','번역'],
+   summary:'말이 잘 안 통해도 안전 정보는 정확히 알아야 합니다. 모르면 다시 물어보는 것이 안전입니다.',
+   points:['이해할 수 있는 언어로 안전교육을 해 달라고 요청합니다.','그림 표지와 색깔(빨강 금지, 노랑 경고)로 위험을 확인합니다.','"멈춰", "위험", "비상정지" 같은 말은 꼭 익혀 둡니다.','이해가 안 되면 일을 시작하기 전에 동료나 관리자에게 다시 물어봅니다.'],
+   see:['signs','training','stopright']}
+);
+KB.push(
+  {id:'alone', title:'혼자 작업 · 2인 1조', kw:['혼자 작업','혼자 해도','혼자 남','혼자 일','혼자서','단독 작업','2인 1조','2인1조','둘이서'],
+   summary:'혼자 일하다 사고가 나면 도와줄 사람이 없어 작은 사고도 크게 번집니다. 위험한 작업은 혼자 하지 않습니다.',
+   points:['밀폐공간, 높은 곳, 전기, 설비 정비 같은 위험작업은 2인 1조로 합니다.','혼자 남게 되면 관리자에게 알리고, 정해진 시간마다 연락합니다.','내 위치와 하는 일을 다른 사람이 알게 합니다.','몸이 안 좋거나 이상하면 바로 연락할 수 있게 휴대폰을 가까이 둡니다.'],
+   see:['permit','confined','fatigue']},
+  {id:'handover', title:'교대 · 인수인계', kw:['인수인계','인계','교대할 때','교대 시간','다음 근무자','넘겨줄'],
+   summary:'교대할 때 설비 상태를 제대로 넘기지 않으면, 다음 사람이 모르고 위험한 설비를 켤 수 있습니다.',
+   points:['고장·이상이 있었던 설비와 지금 상태를 알려 줍니다.','잠금(LOTO)이 걸려 있는 설비와 그 이유를 꼭 알려 줍니다.','진행 중인 작업, 바꾼 설정값, 남은 자재를 알려 줍니다.','말로만 하지 말고 인수인계 기록(또는 ORBIT 기록 화면)을 함께 확인합니다.'],
+   see:['loto','report','fatigue']}
+);
+/* 정리정돈·MSDS 키워드 정리 (유기용제는 전용 주제로) */
+(function(){ const m = KB.find(x => x.id === 'msds'); m.kw = m.kw.filter(w => w !== '유기용제'); m.see = ['storage','solvent','eyewash']; })();
+/* 기존 주제에 함께 볼 주제 연결 */
+const SEE = {loto:['caught','permit'], caught:['loto','press','robot'], ppe:['dust','noise','eyewash'], stopright:['report','foreign'], serious:['risk','comp'],
+  risk:['tbm','nearmiss'], nearmiss:['report','tbm'], fire:['exits','welding','burn'], elec:['permit','burn'], fall:['permit','crane'], forklift:['crane','housekeeping'],
+  confined:['permit','eyewash'], lifting:['fatigue'], heat:['cold','fatigue'], cpr:['bleeding','burn'], noise:['ppe'], estop:['restart','robot'], training:['foreign','signs'],
+  housekeeping:['exits'], restart:['loto','estop']};
+Object.keys(SEE).forEach(id => { const k = KB.find(x => x.id === id); if(k && !k.see) k.see = SEE[id]; });
+
+/* 안전 백과 — 분야별 묶음 */
+const KB_GROUPS = [
+  {name:'기본 · 제도', ids:['stopright','serious','risk','tbm','permit','nearmiss','report','comp','training','signs','foreign']},
+  {name:'기계 · 설비', ids:['loto','caught','estop','restart','press','robot','crane','forklift','grinder','hydraulic','handtool']},
+  {name:'전기 · 화재 · 재난', ids:['elec','fire','welding','exits','earthquake']},
+  {name:'화학물질 · 작업환경', ids:['msds','storage','solvent','dust','confined','noise','eyewash']},
+  {name:'몸 · 응급처치', ids:['cpr','bleeding','burn','heat','cold','fatigue','lifting']},
+  {name:'작업장 관리 · 보호구', ids:['ppe','fall','housekeeping']}
+];
+KB_GROUPS[0].ids.push('alone','handover');
+
+const KB_FEATURED = ['loto','ppe','stopright','fire','cpr','caught','forklift','confined'];
+
+/* 짧은 대답 — 증상이 없는 짧은 말에만 반응 (대화 창에만 답, 판별 화면은 그대로) */
+const SMALLTALK = [
+  {re:/^(안녕|하이|hi|hello|반가|처음뵙)/, msg:'안녕하세요. 설비 증상이나 궁금한 안전 질문을 편하게 적어 주세요. 위험하다고 느끼면 답을 기다리지 말고 먼저 비상정지하세요.'},
+  {re:/고마|감사|수고|땡큐|thank/, msg:'천만에요. 오늘도 안전하게 작업하세요. 이상이 보이면 언제든 적어 주세요.'},
+  {re:/^(정상|고쳤|고침|해결|괜찮|이상없|문제없|다됐|다고쳤|끝났|수리완료|수리끝)/, kb:'restart'},
+  {re:/^(몰라|모르겠|잘모르|모름|글쎄)/, msg:'괜찮아요. 모르면 멈추는 것이 원칙입니다. 설비를 정지 상태로 두고 보전 담당자를 부르세요.\n보이는 것, 들리는 소리, 냄새 중 하나만 적어 주셔도 다시 판별해 드릴게요.'},
+  {re:/^(네|예|응|ㅇㅇ|넵|알겠|오케이|ok|확인|알았)/, msg:'알겠습니다. 안내 순서대로 진행하고, 다른 증상이 보이면 바로 적어 주세요.'},
+  {re:/^(아니|아뇨|ㄴㄴ|no$)/, msg:'알겠습니다. 지금 보이는 것, 들리는 소리, 냄새, 화면 알람 중 하나를 적어 주시면 다시 판별할게요.'}
+];
+function matchSmall(input){
+  const t = norm(input).replace(/[.!~?ㅎㅋ]+$/g, '');
+  if(t.length > 12) return null;
+  return SMALLTALK.find(x => x.re.test(t)) || null;
+}
+
+/* 질문인지 판단: "~뭐야", "알려줘", "어떻게", "?" 등 */
+const QUESTION = /\?|주의할|조심|사용법|쓰는법|써도|될까|할까|뭐야|뭔가|뭐예|뭐에|뭐지|무엇|알려|방법|어떻게|하는법|설명|궁금|해야돼|해야되|해야하|되나요|돼나요|되요|규정|기준|수칙|주의사항|예방|요령|하면돼|하면되|할때|해야할|what|how/;
+/* 지금 벌어지는 응급 상황 — 질문처럼 써도 설명 카드보다 사고 대응 안내가 먼저 */
+const EMERGENCY = ['불났','불이 났','화재 발생','화재가 발생','화재가 났','연기가 나','연기 나','타는 냄새가 나','타는냄새나','스파크가 튀','감전됐','감전 됐','감전당'];
+
+/* 막연한 고장 표현 → 일반 오작동 안내 (다른 사례에 하나도 안 걸릴 때만) */
+const GM_WORDS = ['떠요','떴어','떴는데','에러 코드','오류 코드','알람 안 꺼','알람이 안 꺼','경보가 안 꺼','계속 울','덜덜','냄새','소리가 나','소리 나','이상한 느낌','오작동','이상 동작','이상동작','이상하게 움직','멋대로','제멋대로','작동이 안','작동 안','작동을 안','안 돼','안돼','고장','멈췄','멈춰','멈춤','정지됐','정지돼','에러','오류','알람이 떠','알람 떴','알람이 울','경보','이상한 소리','소리가 이상','떨려','진동','버벅','느려','이상해','이상합','malfunction','error','broken','stopped','not working'];
+
+/* =========================================================
+   5. 판별
+   ========================================================= */
+const norm = s => s.replace(/\s+/g, '').toLowerCase();
+const hits = (t, list) => list.filter(k => t.includes(norm(k)));
+
+function splitClauses(input){
+  return input.split(/[,.!?;\n]|그리고|그런데|는데|지만|\s고\s|고\s|\band\b|\bbut\b/).map(x => x.trim()).filter(Boolean);
+}
+const NEG_EXCEPT = /(모터|기계|설비|펌프|팬|컴프레서|콤프레샤|로봇)(가|이|에서|의)?소리(가|도)?(안나|나지않)|(힘이|반응이|신호가|압력이|공기가|에어가|감지가|출력이|전원이|움직임이|의식이|호흡이|숨이|맥박이|대답이)없|숨을안쉬|숨을안쉼/;
+const NEG = /안나(?!와|옴|온|오)|안났|안납|나지않|없|아니|안보여|안보임|보이지않|안들려|들리지않|안느껴|느껴지지않|전혀|nothing|no(?=smoke|fire|leak|spark|noise)|not(?=burn|leak|smoke)/;
+/* 부정은 "냄새·소리·연기가 없다"처럼 감각 증상을 부정할 때만 적용.
+   "오일 없어", "에어 없어", "반응이 없어", "의식이 없어"는 무언가 부족한 '증상'이므로 그대로 판별 */
+const SENSE = /소리|냄새|연기|불꽃|스파크|바람|열이|진동|떨림|깜빡|깜박|누설|새는|새지|타는|탄내|소음|이상|문제|증상|화재|불이붙|다친|부상|피가|smoke|fire|spark|leak|noise/;
+function isNegated(c){ return NEG.test(c) && SENSE.test(c) && !NEG_EXCEPT.test(c); }
+
+function classifySymptom(input){
+  /* ① 구절로 나누고, 부정 표현이 있는 구절("타는 냄새는 안 나요")은 판별에서 뺀다 */
+  const kept = [], negated = [];
+  splitClauses(input).forEach(c => (isNegated(norm(c)) ? negated : kept).push(c));
+  const t = kept.map(norm).join('|');            // 구절끼리 단어가 이어 붙지 않게 구분
+
+  const d = hits(t, KW_DANGER), c = hits(t, KW_CAUTION);
+
+  /* ② 안전 최우선 단어 → ③ 점수(증상 2점 + 부품 1점)가 가장 높은 사례, 동점이면 목록 위쪽 */
+  let key = 'GENERAL', sym = [], obj = [];
+  const ov = OVERRIDE.find(r => r.test ? r.test(t) : hits(t, r.kw).length);
+  const pick = rule => { key = rule.data; sym = hits(t, rule.sym); obj = hits(t, rule.obj); };
+  if(ov) pick(CATEGORY_RULES.find(r => r.data === ov.data));
+  else if(BODY_PAIN.test(t)) pick(CATEGORY_RULES.find(r => r.data === 'HL'));
+  else {
+    let best = 0;
+    for(const rule of CATEGORY_RULES){
+      if(rule.data === 'INJ') continue;          // 부상은 위 사고 판단(injuryHit)으로만
+      const sc = hits(t, rule.sym).length * 2 + hits(t, rule.obj).length;
+      if(sc > best){ best = sc; pick(rule); }
+    }
+  }
+  if(key === 'C1' && hits(t, AIR_WITH_SENSOR).length) key = 'Q_AIR';
+
+  /* ④ 위험도
+     - 해당 사례 없음: 위험 단어가 있으면 위험, 아니면 판단 불가(일단 정지) — '알람'만으로 주의가 되지 않게
+     - 위험 사례: 증상이 있거나 위험 단어가 있을 때만 위험, 부품 이름만이면 주의
+     - 주의 사례: 위험 단어가 있으면 위험으로 올림 */
+  const caseLv = DATA[key].level;
+  let level;
+  if(key === 'GENERAL') level = d.length ? 'danger' : 'general';
+  else if(caseLv === 'danger') level = (ov || sym.length || d.length || key === 'Q_AIR') ? 'danger' : 'caution';
+  else level = d.length ? 'danger' : 'caution';
+
+  /* 물이 전기 설비 근처면 감전 위험 → 위험으로 */
+  if(key === 'WT' && hits(t, ['제어반','전기','콘센트','배전','전선','모터','차단기','분전반','전원']).length) level = 'danger';
+
+  /* ⑤ 어느 사례에도 안 걸린 막연한 고장 표현("기계 오작동") → 일반 오작동 안내 */
+  let gm = [];
+  if(key === 'GENERAL'){
+    gm = hits(t, GM_WORDS);
+    if(gm.length){ key = 'GM'; level = d.length ? 'danger' : 'caution'; }
+  }
+  const matched = [...new Set(d.concat(sym, obj, gm, key === 'GENERAL' ? c : []))];
+  return {level, key, matched, negated, t, urgent: !!ov && ['CH','INJ','GX'].includes(key)};
+}
+
+/* 산업안전 질문 주제 찾기 (질문 전체 문장 기준 — "안전모 없어도 돼?"처럼 부정이 섞여도 찾음) */
+function matchKB(all){
+  let best = null, score = 0;
+  /* 더 구체적인(긴) 말이 맞을수록 높은 점수: '화상 응급처치'는 응급처치보다 화상 주제로 */
+  KB.forEach(k => { const h = [...new Set(hits(all, k.kw).map(norm))].reduce((a, w) => a + w.length, 0); if(h > score){ score = h; best = k; } });
+  return best;
+}
+
+/* 입력 판별: ① 지금 벌어지는 응급(부상·불남)은 무조건 사고 대응 안내
+   ② 질문이거나 증상이 없는 입력이 안전 주제와 맞으면 설명 카드
+   ③ 그 외에는 증상 판별 (관련 안전 상식은 버튼으로 함께 보여 줌) */
+function classify(input){
+  const r = classifySymptom(input);
+  const all = norm(input);
+  const kb = matchKB(all);
+  const emergency = hits(r.t, EMERGENCY).length > 0 || r.urgent || (['RU','FO'].includes(r.key) && !QUESTION.test(all));
+  const question = QUESTION.test(all);
+  if(kb && !emergency && (question || r.key === 'GENERAL' || r.key === 'GM')) return Object.assign(r, {kb: kb.id});
+  if(!kb && !emergency && (question || /안전|수칙|백과/.test(all)) && r.key === 'GENERAL') return Object.assign(r, {kb: '_index'});
+  return Object.assign(r, {kbSuggest: kb ? kb.id : null});
+}
+
+/* =========================================================
+   6. DOM 헬퍼 — 텍스트는 모두 textContent
+   ========================================================= */
+function el(tag, cls, text){
+  const e = document.createElement(tag);
+  if(cls) e.className = cls;
+  if(text !== undefined) e.textContent = text;
+  return e;
+}
+function add(parent, ...kids){ kids.forEach(k => parent.appendChild(k)); return parent; }
+function list(tag, items, cls){
+  const l = el(tag, cls);
+  items.forEach(i => l.appendChild(el('li', null, i)));
+  return l;
+}
+
+/* 안전 표지형 SVG 아이콘 (이모지 대신) */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  Object.keys(attrs).forEach(k => e.setAttribute(k, attrs[k]));
+  return e;
+}
+const ICONS = {
+  stop: [['path',{fill:'currentColor',d:'M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z'}],
+         ['rect',{x:'10.9',y:'6',width:'2.2',height:'8',rx:'1',fill:'#b3261e'}],['circle',{cx:'12',cy:'17.3',r:'1.35',fill:'#b3261e'}]],
+  warn: [['path',{fill:'currentColor',d:'M12 2.2 23.2 21.5H.8z'}],
+         ['rect',{x:'10.9',y:'8.6',width:'2.2',height:'6.6',rx:'1',fill:'#f5a524'}],['circle',{cx:'12',cy:'18',r:'1.3',fill:'#f5a524'}]],
+  info: [['circle',{cx:'12',cy:'12',r:'10',fill:'currentColor'}],
+         ['rect',{x:'10.9',y:'10.2',width:'2.2',height:'7.4',rx:'1',fill:'#1f5fbf'}],['circle',{cx:'12',cy:'7.1',r:'1.35',fill:'#1f5fbf'}]],
+  bell: [['path',{fill:'currentColor',d:'M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-5-6.71V3.5a2 2 0 1 0-4 0v.79A7 7 0 0 0 5 11v5l-2 2v1h18v-1z'}]],
+  lock: [['path',{fill:'currentColor',d:'M6 10V7a6 6 0 1 1 12 0v3h1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1zm2 0h8V7a4 4 0 1 0-8 0z'}]],
+  unlock: [['path',{fill:'currentColor',d:'M6 10V7a6 6 0 0 1 11.6-2.1l-1.9.7A4 4 0 0 0 8 7v3h11a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1z'}]]
+};
+function icon(name){
+  const s = svgEl('svg', {class:'ic', viewBox:'0 0 24 24', 'aria-hidden':'true'});
+  ICONS[name].forEach(([tag, attrs]) => s.appendChild(svgEl(tag, attrs)));
+  return s;
+}
+
+/* =========================================================
+   7. 모바일 화면
+   ========================================================= */
+try {
+
+const $ = id => document.getElementById(id);
+const $result = $('result'), $chat = $('chat'), $text = $('text'), $alarm = $('alarmText');
+const $toast = $('toast'), $callCount = $('callCount'), $press = $('gPress'), $badge = $('chatBadge');
+const VIEWS = {input: $('vInput'), result: $('vResult'), chat: $('vChat')};
+let RM = false;
+try{ RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+let callTotal = 0;
+let busy = false;
+let locked = false;         // 위험 판별 후 담당자 비밀번호 입력 전까지 true
+let estopActive = false;    // 비상정지가 눌린 상태
+let current = null;         // 지금 화면의 판별 {level,key,matched,negated}
+let curTab = 'input', unread = 0;
+let $pinInput = null;
+
+/* 탭 전환 */
+function showTab(name){
+  if(!VIEWS[name]) return;
+  curTab = name;
+  Object.keys(VIEWS).forEach(k => { VIEWS[k].hidden = (k !== name); });
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
+  if(name === 'chat'){ unread = 0; updBadge(); VIEWS.chat.scrollTop = VIEWS.chat.scrollHeight; }
+}
+function updBadge(){ $badge.hidden = unread === 0; $badge.textContent = unread > 9 ? '9+' : String(unread); }
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+/* 브라우저 저장 — 새로고침해도 잠금·비상정지·대기시간·기록 유지 */
+const STATE_KEY = 'orbit.state.v1', LOG_KEY = 'orbit.log.v1', LOG_MAX = 500;
+function load(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+const ST = Object.assign({lock:null, estop:false, estopAt:null, fails:0, cooldownUntil:0, callTotal:0}, load(STATE_KEY, {}) || {});
+const saveState = () => save(STATE_KEY, ST);
+function logEvent(type, level, code, text){
+  const logs = load(LOG_KEY, []);
+  const arr = Array.isArray(logs) ? logs : [];
+  arr.push({t:new Date().toISOString(), type, level:level || '', code:code || '', text:text || ''});
+  save(LOG_KEY, arr.slice(-LOG_MAX));
+}
+
+function showEmpty(){
+  const box = el('div', 'empty');
+  const steps = el('ol');
+  ['안전·멈춤 판별','의심 원인 후보','1차 점검 순서 및 보전 담당자 호출 기준'].forEach(s => steps.appendChild(el('li', null, s)));
+  const lg = el('div', 'legend');
+  add(lg, el('span', 'pill danger', '위험 · 즉시 정지'), el('span', 'pill caution', '주의 · 수동 점검'), el('span', 'pill general', '일반 · 판단 불가'));
+  add(box, el('h3', null, '대기 중'),
+    el('p', null, '상황 선택 탭에서 버튼을 누르거나, 아래 입력창에 증상을 적으면 여기에 3단계로 결과가 나옵니다.'),
+    steps, lg);
+  const faq = el('div', 'faq');
+  faq.appendChild(el('h4', null, '자주 묻는 산업 안전 질문'));
+  faq.appendChild(el('p', null, '"LOTO가 뭐야?", "소화기 사용법 알려줘"처럼 물어봐도 됩니다.'));
+  const row = el('div', 'chips');
+  KB_FEATURED.forEach(id => {
+    const k = KB.find(x => x.id === id); if(!k) return;
+    const btn = el('button', 'chip kb', k.title);
+    btn.type = 'button';
+    btn.addEventListener('click', () => runKB(k.title + ' 알려줘', id));
+    row.appendChild(btn);
+  });
+  const all = el('button', 'chip', '안전 백과 전체 보기 (' + KB.length + '개) →');
+  all.type = 'button';
+  all.addEventListener('click', () => runKB('안전 백과 열기', '_index'));
+  row.appendChild(all);
+  faq.appendChild(row);
+  box.appendChild(faq);
+  $result.replaceChildren(box);
+}
+
+/* 현장 오류 사례 */
+const $cases = $('cases');
+CASE_GROUPS.forEach(g => {
+  const h = el('div', 'sec-t ' + g.lv);
+  add(h, el('i', 'dot'), el('span', null, '현장 오류 사례 · ' + g.title), el('span', 'cnt', g.keys.length + '건'));
+  const col = el('div', 'cases');
+  g.keys.forEach(k => {
+    const c = DATA[k];
+    const b = el('button', 'case ' + c.level);
+    b.type = 'button'; b.dataset.key = k;
+    const row = el('span', 'row');
+    add(row, el('span', 'cd', c.code), el('span', 'sv', c.level === 'danger' ? '위험' : '주의'));
+    add(b, row, el('span', 'nm', c.short));
+    col.appendChild(b);
+  });
+  add($cases, h, col);
+});
+
+function addMsg(text, who, cls){
+  const d = el('div', 'msg ' + who + (cls ? ' ' + cls : ''));
+  d.appendChild(el('span', 'who', who === 'user' ? '작업자' : 'ORBIT'));
+  d.appendChild(document.createTextNode(text));
+  $chat.appendChild(d);
+  if(curTab === 'chat') VIEWS.chat.scrollTop = VIEWS.chat.scrollHeight;
+  else if(who === 'bot' && cls !== 'wait'){ unread++; updBadge(); }
+  return d;
+}
+function setState(level, text){
+  document.body.classList.remove('st-danger','st-caution','st-general','st-ok');
+  if(level) document.body.classList.add('st-' + level);
+  $alarm.textContent = text;
+}
+function toast(msg){
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => $toast.classList.remove('show'), 2600);
+}
+
+/* =========================================================
+   8. 결과 3카드
+   ========================================================= */
+function card(num, en, title, lv){
+  const c = el('article', 'card' + (lv ? ' lv-' + lv : ''));
+  const h = el('div', 'card-h');
+  const h3 = el('h3');
+  add(h3, el('small', null, en), document.createTextNode(title));
+  add(h, el('span', 'no', String(num)), h3);
+  if(lv) h.appendChild(el('span', 'pill ' + lv, LEVELS[lv].label));
+  const b = el('div', 'card-b');
+  add(c, h, b);
+  return {c, b};
+}
+
+function render(level, key, matched, negated, kbSuggest){
+  const L = LEVELS[level], D = DATA[key];
+  current = {level, key, matched: matched || null, negated: negated || null};
+
+  const k1 = card(1, 'STEP 01 · SAFETY CHECK', '안전·멈춤 판별', level);
+  const bn = el('div', 'banner ' + level);
+  const bt = el('div');
+  add(bt, el('small', null, L.sub), document.createTextNode(D.verdict || L.verdict));
+  add(bn, icon(L.icon), bt);
+  k1.b.appendChild(bn);
+  if(level === 'danger'){
+    const stops = el('div', 'stops');
+    (D.stops || STOP_ORDER).forEach((s, i) => { const d = el('div'); add(d, el('span', null, 'STEP ' + (i + 1)), document.createTextNode(s)); stops.appendChild(d); });
+    k1.b.appendChild(stops);
+  }
+  const meta = el('dl', 'meta');
+  add(meta, el('dt', null, '판별 계열'), el('dd', null, D.code + '  [' + D.cat + '] ' + D.title));
+  if(matched && matched.length){
+    const kw = el('dd', 'kw');
+    matched.forEach(m => kw.appendChild(el('span', null, m)));
+    add(meta, el('dt', null, '판별 근거'), kw);
+  }
+  if(negated && negated.length){
+    const ng = el('dd', 'kw');
+    negated.forEach(m => ng.appendChild(el('span', null, m)));
+    add(meta, el('dt', null, '제외한 표현'), ng);
+  }
+  k1.b.appendChild(meta);
+  if(D.s1.why) k1.b.appendChild(el('p', 'why', D.s1.why));
+  add(k1.b, el('p', 'sub-h', level === 'caution' ? '점검 전 안전 확인' : '지금 할 일'), list('ul', D.s1.act));
+  if(key === 'GENERAL' || key === 'GM') k1.b.appendChild(symptomChips());
+  const kbIds = [...new Set((D.kb || []).concat(kbSuggest ? [kbSuggest] : []))];
+  if(kbIds.length) k1.b.appendChild(kbChips(kbIds, '관련 안전 상식'));
+  const ev = el('div', 'evidence');
+  ev.appendChild(el('div', 'eh', 'REFERENCE · 관련 실제 사례'));
+  EVIDENCE_MAP[level].forEach(id => ev.appendChild(el('p', null, '관련 실제 사례(요약): ' + EVIDENCE[id] + ' / ' + EVIDENCE_SOURCE)));
+  ev.appendChild(el('p', 'note', EVIDENCE_NOTE));
+  k1.b.appendChild(ev);
+
+  const k2 = card(2, 'STEP 02 · ROOT CAUSE', '의심 원인 후보');
+  D.s2.forEach((x, i) => {
+    const row = el('div', 'cause');
+    const txt = el('div');
+    txt.appendChild(el('b', null, x.n));
+    if(x.d) txt.appendChild(el('span', 'd', x.d));
+    add(row, el('span', 'rank ' + (x.r || 'no'), x.r ? RANK_LABEL[x.r] : '후보 ' + (i + 1)), txt);
+    k2.b.appendChild(row);
+  });
+
+  const k3 = card(3, 'STEP 03 · INSPECTION & CALL', '1차 점검 순서 · 호출 기준');
+  add(k3.b, el('p', 'sub-h', '1차 점검 순서'), list('ol', D.s3, 'steps'));
+  const call = el('div', 'call' + (level === 'danger' ? ' urgent' : ''));
+  const h4 = el('h4');
+  add(h4, icon('bell'), document.createTextNode((D.callTitle || '보전 담당자 호출 기준') + (level === 'danger' ? ' — 위험: 바로 호출 권장' : '')));
+  const btn = el('button', 'callbtn');
+  btn.type = 'button';
+  add(btn, icon('bell'), document.createTextNode(D.callLabel || '설비보전 담당자 호출 (가상)'));
+  const status = el('div');
+  add(call, h4, list('ul', D.call.concat([CALL_COMMON])), btn, status);
+  btn.addEventListener('click', () => sendCall(level, status, btn, D.callWho || '보전 담당자'));
+  add(k3.b, call, buildRelock(level));
+
+  $result.replaceChildren(k1.c, k2.c, k3.c);
+
+  setState(level, L.alarm);
+  setLocked(level === 'danger' || estopActive);
+  if(estopActive) setState('danger', '비상정지 작동');
+  $press.textContent = D.press;
+  document.querySelectorAll('.case').forEach(b => b.classList.toggle('active', b.dataset.key === key));
+  showTab('result');
+  VIEWS.result.scrollTop = 0;
+}
+
+const SYMPTOM_CHIPS = [['바람 새는 소리','C1'],['부품 걸림 · 모터 안 돎','C3'],['타는 냄새 · 과열','C6'],['센서 불빛 이상','C2'],
+  ['원점 복귀 안 됨','C4'],['갑자기 멈춤 · 신호 끊김','C5'],['덜컹거림 · 볼트 풀림','C7'],['기름 샘 · 오일 없음','C9'],
+  ['안전장치 고장 · 덮개 없음','GD'],['정전 · 전원 꺼짐','PW'],['물 · 냉각수 샘','WT'],['자재 · 부품 없음','MT'],['불량 증가','QC'],['공구 파손','TL'],
+  ['몸 상태 이상','HL'],['설비가 안 멈춤 · 혼자 움직임','RU'],['물건 떨어짐 · 무너짐','FO'],['가스 냄새 · 폭발음','GX'],['눈·피부에 약품·칩','CH'],['다친 사람 있음','INJ']];
+function symptomChips(){
+  const box = el('div', 'chipbox');
+  box.appendChild(el('p', 'sub-h', '어떤 증상에 가까운가요? 누르면 자세한 안내로 바뀝니다'));
+  const row = el('div', 'chips');
+  SYMPTOM_CHIPS.forEach(([label, k]) => {
+    const b = el('button', 'chip ' + DATA[k].level, label);
+    b.type = 'button';
+    b.addEventListener('click', () => run('[' + DATA[k].code + '] ' + DATA[k].title, DATA[k].level, k, null));
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  return box;
+}
+function kbChips(ids, title){
+  const box = el('div', 'chipbox');
+  box.appendChild(el('p', 'sub-h', title));
+  const row = el('div', 'chips');
+  ids.forEach(id => {
+    const k = KB.find(x => x.id === id); if(!k) return;
+    const b = el('button', 'chip kb', k.title);
+    b.type = 'button';
+    b.addEventListener('click', () => runKB(k.title + ' 알려줘', id));
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  return box;
+}
+
+/* 안전 정보 카드 — 잠금 중에도 볼 수 있음(잠금 카드는 그대로 두고 위에 띄움) */
+const KB_INDEX = {id:'_index', title:'안전 백과 · 전체 주제', summary:'', points:[]};
+let indexMiss = false;
+function renderKB(id){
+  const k = id === '_index' ? KB_INDEX : (KB.find(x => x.id === id) || KB_INDEX);
+  const isIndex = k === KB_INDEX;
+  const c = el('article', 'card lv-info kbcard');
+  const h = el('div', 'card-h');
+  const h3 = el('h3');
+  add(h3, el('small', null, 'SAFETY INFO · 안전 정보'), document.createTextNode(k.title));
+  add(h, el('span', 'no', 'i'), h3, el('span', 'pill general', '안전 상식'));
+  const b = el('div', 'card-b');
+  const summary = !isIndex ? k.summary
+    : (indexMiss ? '질문에 딱 맞는 안내를 찾지 못했습니다. 아래에서 가까운 주제를 골라 보세요. 설비 증상이라면 보이는 것·들리는 소리·냄새를 적어 주세요.'
+                 : '산업 안전 ' + KB.length + '개 주제를 분야별로 모았습니다. 버튼을 누르거나 "용접할 때 주의할 점?"처럼 물어보세요.');
+  b.appendChild(el('p', 'kb-sum', summary));
+  if(k.points.length) add(b, el('p', 'sub-h', '이렇게 하세요'), list('ul', k.points));
+  if(isIndex) KB_GROUPS.forEach(g => b.appendChild(kbChips(g.ids, g.name + ' (' + g.ids.length + ')')));
+  if(k.warn){ const w = el('div', 'kb-warn'); add(w, icon('warn'), el('span', null, k.warn)); b.appendChild(w); }
+  const rel = (k.related || []).filter(x => DATA[x]);
+  if(rel.length){
+    const box = el('div', 'chipbox');
+    box.appendChild(el('p', 'sub-h', '관련 현장 상황 안내 보기'));
+    const row = el('div', 'chips');
+    rel.forEach(x => {
+      const btn = el('button', 'chip ' + DATA[x].level, DATA[x].code + ' ' + (DATA[x].short || DATA[x].title));
+      btn.type = 'button';
+      btn.addEventListener('click', () => run('[' + DATA[x].code + '] ' + DATA[x].title, DATA[x].level, x, null));
+      row.appendChild(btn);
+    });
+    box.appendChild(row); b.appendChild(box);
+  }
+  if(k.see && k.see.length) b.appendChild(kbChips(k.see, '함께 보면 좋은 안전 상식'));
+  if(!isIndex){
+    const more = el('button', 'chip', '안전 백과 전체 보기 (' + KB.length + '개)');
+    more.type = 'button'; more.style.marginTop = '12px';
+    more.addEventListener('click', () => runKB('안전 백과 열기', '_index'));
+    b.appendChild(more);
+  }
+  b.appendChild(el('p', 'kb-src', '일반적인 산업안전 수칙을 쉽게 요약한 안내입니다. 사업장 안전수칙·장비 매뉴얼·관리자 지시가 우선입니다.'));
+  add(c, h, b);
+
+  if(locked){
+    $result.querySelectorAll('.kbcard').forEach(x => x.remove());
+    $result.prepend(c);
+  } else {
+    $result.replaceChildren(c);
+    setState('general', '안전 정보 안내');
+    document.querySelectorAll('.case').forEach(x => x.classList.remove('active'));
+  }
+  showTab('result');
+  VIEWS.result.scrollTop = 0;
+  return k;
+}
+function runKB(userLabel, id){
+  if(busy) return;
+  busy = true;
+  addMsg(userLabel, 'user');
+  const w = addMsg('안전 정보 찾는 중…', 'bot', 'wait');
+  setTimeout(() => {
+    try{
+      w.remove();
+      indexMiss = id === '_index' && userLabel !== '안전 백과 열기';
+      const k = renderKB(id);
+      const sum = k === KB_INDEX ? (indexMiss ? '딱 맞는 주제를 찾지 못했어요. 판별 결과 탭의 목록에서 골라 주세요.' : '분야별 주제 목록을 열었습니다.') : k.summary;
+      addMsg('[안전 정보] ' + k.title + '\n' + sum + (locked ? '\n※ 재가동 잠금은 그대로 유지됩니다.' : ''), 'bot', 'general');
+      logEvent('안전 질문', '', '', userLabel + ' → ' + k.title);
+    } finally { busy = false; }
+  }, RM ? 0 : 300);
+}
+
+/* =========================================================
+   재가동 잠금 — 보전 담당자 비밀번호 입력 시 해제
+   ========================================================= */
+function setLocked(on){
+  locked = on;
+  document.body.classList.toggle('locked', on);
+  ST.lock = on ? current : null;
+  saveState();
+}
+
+function buildRelock(level){
+  const box = el('div', 'relock' + (level === 'danger' ? ' danger' : ''));
+  const h4 = el('h4');
+  add(h4, icon('lock'), document.createTextNode('재가동 잠금 — 보전 담당자 확인 필요'));
+  const p = el('p', null, level === 'danger'
+    ? '위험 상황이라 화면이 잠겼습니다. 보전 담당자가 원인을 확인한 뒤 비밀번호를 입력해야 재가동 승인과 다음 상황 입력이 가능합니다. (안전 질문은 잠금 중에도 됩니다)'
+    : RESTART_NOTICE + '. 점검을 마친 뒤 보전 담당자가 비밀번호를 입력하면 재가동이 승인됩니다.');
+  const row = el('div', 'pinrow');           // form 아님 → 눌러도 새로고침 없음
+  const inp = el('input');
+  inp.type = 'password'; inp.maxLength = 20; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+  inp.placeholder = '담당자 비밀번호'; inp.setAttribute('aria-label', '보전 담당자 비밀번호');
+  inp.setAttribute('enterkeyhint', 'done');
+  const btn = el('button', null, '잠금 해제');
+  btn.type = 'button';
+  add(row, inp, btn);
+  const msg = el('div', 'pmsg');
+  msg.setAttribute('aria-live', 'polite');
+  const note = el('div', 'estop-note', '비밀번호를 틀리거나 입력 대기 중이어도 오른쪽 아래 비상정지 버튼은 항상 작동합니다.');
+  add(box, h4, p, row, msg, note);
+  $pinInput = inp;
+
+  const cdText = left => MAX_TRY + '회 틀렸습니다. ' + left + '초 후 다시 입력하세요. (비상정지는 지금도 작동)';
+  function startCooldown(){
+    inp.disabled = btn.disabled = true;
+    msg.className = 'pmsg err';
+    let ticks = 0, t = null;
+    const tickCd = () => {
+      const left = Math.ceil((ST.cooldownUntil - Date.now()) / 1000);
+      if(ticks++ > 0 && !box.isConnected){ clearInterval(t); return; }
+      if(left <= 0){
+        clearInterval(t);
+        inp.disabled = btn.disabled = false;
+        msg.className = 'pmsg'; msg.textContent = '';
+      } else msg.textContent = cdText(left);
+    };
+    t = setInterval(tickCd, 1000);
+    tickCd();
+  }
+  if(ST.cooldownUntil > Date.now()) startCooldown();
+
+  function submit(){
+    if(inp.disabled) return;
+    if(!inp.value) return;
+    if(inp.value === MAINT_PASSWORD){ ST.fails = 0; ST.cooldownUntil = 0; saveState(); inp.blur(); unlock(box, level); return; }
+    ST.fails++;
+    inp.value = '';
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    if(ST.fails >= MAX_TRY){
+      ST.fails = 0;
+      ST.cooldownUntil = Date.now() + COOLDOWN_SEC * 1000;
+      saveState();
+      logEvent('비밀번호 오류', '', '', MAX_TRY + '회 연속 오류 · ' + COOLDOWN_SEC + '초 입력 제한');
+      inp.blur();
+      startCooldown();
+    } else {
+      saveState();
+      msg.className = 'pmsg err';
+      msg.textContent = '비밀번호가 맞지 않습니다. (' + ST.fails + '/' + MAX_TRY + ')';
+    }
+  }
+  btn.addEventListener('click', submit);
+  inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); submit(); } });
+  return box;
+}
+
+function unlock(box, level){
+  const tm = new Date().toTimeString().slice(0, 5);
+  box.className = 'relock open';
+  const h4 = el('h4');
+  add(h4, icon('unlock'), document.createTextNode('재가동 승인됨 · ' + tm));
+  box.replaceChildren(h4, el('p', null, '보전 담당자 확인으로 잠금이 해제되었습니다. 저속 또는 1사이클 시운전부터 시작하고, 이상이 보이면 즉시 비상정지하세요. (가상 시연 기록이며 실제 설비와 연동되지 않습니다)'));
+  estopActive = false;
+  ST.estop = false; ST.estopAt = null;
+  document.body.classList.remove('estop');
+  setLocked(false);
+  $pinInput = null;
+  logEvent('잠금 해제', '', current && DATA[current.key] ? DATA[current.key].code : '', '보전 담당자 비밀번호 확인 · 재가동 승인');
+  setState('ok', '승인 · 시운전');
+  toast('보전 담당자 확인 완료 — 재가동 잠금 해제');
+  addMsg('보전 담당자 확인으로 재가동 잠금이 해제되었습니다 (' + tm + '). 1사이클 시운전부터 진행하세요.', 'bot');
+}
+
+/* 비상정지 — busy·잠금·대기시간과 관계없이 항상 실행 */
+function emergencyStop(restoredAt){
+  const restoring = typeof restoredAt === 'string';
+  const tm = restoring && restoredAt ? restoredAt : new Date().toTimeString().slice(0, 8);
+  estopActive = true;
+  ST.estop = true; ST.estopAt = tm;
+  document.body.classList.add('estop');
+  setState('danger', '비상정지 작동');
+  if(!restoring){
+    toast('비상정지 작동 (' + tm + ') — 가상 시연');
+    addMsg('[비상정지] ' + tm + ' 비상정지가 작동했습니다. 설비에 접근하지 말고, 보전 담당자 확인 후 비밀번호로 해제하세요.', 'bot', 'danger');
+    logEvent('비상정지', 'danger', current && DATA[current.key] ? DATA[current.key].code : '', '비상정지 버튼 작동');
+  }
+  let box = $result.querySelector('.relock:not(.open)');
+  if(!box){
+    const k = card(0, 'EMERGENCY STOP', '비상정지 작동', 'danger');
+    k.c.querySelector('.no').textContent = '!';
+    const bn = el('div', 'banner danger');
+    const bt = el('div');
+    add(bt, el('small', null, 'E-STOP · 설비 가동 중지 유지'), document.createTextNode('비상정지 – 담당자 확인 전 재가동 금지'));
+    add(bn, icon('stop'), bt);
+    const stops = el('div', 'stops');
+    STOP_ORDER.forEach((s, i) => { const d = el('div'); add(d, el('span', null, 'STEP ' + (i + 1)), document.createTextNode(s)); stops.appendChild(d); });
+    box = buildRelock('danger');
+    add(k.b, bn, stops, box);
+    if(!current) current = {level:'danger', key:'GENERAL', matched:null, negated:null, estopOnly:true};
+    if($result.querySelector('.empty')) $result.replaceChildren(k.c); else $result.prepend(k.c);
+  }
+  setLocked(true);
+  const log = el('div', 'estop-log', (restoring ? '비상정지 상태 복원 · 작동 시각 ' : '비상정지 작동 기록 · ') + tm);
+  box.insertBefore(log, box.querySelector('.pinrow'));
+  showTab('result');
+  VIEWS.result.scrollTop = 0;
+}
+
+function lockedNotice(){
+  toast('재가동 잠금 중 — 보전 담당자 비밀번호를 먼저 입력하세요');
+  showTab('result');
+  const p = $pinInput;
+  if(p && p.isConnected) setTimeout(() => { try{ p.scrollIntoView({block:'center', behavior: RM ? 'auto' : 'smooth'}); }catch(e){ p.scrollIntoView(); } }, 30);
+}
+
+/* 호출 알림 (가상) */
+const RECALL_SEC = 60;
+function sendCall(level, status, btn, who){
+  who = who || '보전 담당자';
+  if(btn.disabled) return;
+  callTotal++;
+  ST.callTotal = callTotal; saveState();
+  $callCount.textContent = callTotal + '건';
+  const no = 'CALL-' + String(callTotal).padStart(3, '0');
+  const pri = level === 'danger' ? '긴급' : '일반';
+  const tm = new Date().toTimeString().slice(0, 5);
+  const box = el('div', 'callstatus');
+  const tag = el('span', 'st wait', '접수 대기');
+  add(box, document.createTextNode(no + ' · ' + tm + ' · 긴급도 ' + pri + ' · 전송됨(가상)'), tag);
+  status.replaceChildren(box);
+  toast(no + ' ' + who + ' 호출 (' + pri + ') — 가상 시연');
+  addMsg(who + ' 호출 ' + no + ' (' + pri + ') 전송 — 가상 시연입니다. 담당자가 올 때까지 정지 상태를 유지하세요.', 'bot', level);
+  logEvent(who + ' 호출', level, current && DATA[current.key] ? DATA[current.key].code : '', no + ' · 긴급도 ' + pri);
+  setTimeout(() => { tag.className = 'st ok'; tag.textContent = '접수됨 · 이동 중'; }, 2200);
+  const label = btn.lastChild;
+  btn.disabled = true;
+  let left = RECALL_SEC;
+  label.textContent = '호출 완료 · ' + left + '초 후 재호출';
+  const t = setInterval(() => {
+    left--;
+    if(!btn.isConnected){ clearInterval(t); return; }
+    if(left <= 0){ clearInterval(t); btn.disabled = false; label.textContent = '담당자가 안 오면 다시 호출'; }
+    else label.textContent = '호출 완료 · ' + left + '초 후 재호출';
+  }, 1000);
+}
+
+/* =========================================================
+   9. 입력 처리
+   ========================================================= */
+function run(userLabel, level, key, matched, negated, kbSuggest){
+  if(busy) return;
+  if(locked){ lockedNotice(); return; }
+  if(!DATA[key]){ key = 'GENERAL'; level = 'general'; }
+  busy = true;
+  addMsg(userLabel, 'user');
+  const w = addMsg('판별 중…', 'bot', 'wait');
+  setTimeout(() => {
+    try{
+      w.remove();
+      render(level, key, matched, negated, kbSuggest);
+      logEvent('판별', level, DATA[key].code, userLabel);
+      addMsg((level === 'danger' && DATA[key].chat ? DATA[key].chat : LEVELS[level].chat).replace('오른쪽', '판별 결과 탭의') + '\n판별 계열: ' + DATA[key].code + ' [' + DATA[key].cat + '] ' + DATA[key].title, 'bot', level);
+    } finally { busy = false; }
+  }, RM ? 0 : 400);
+}
+
+$('qAir').addEventListener('click', () => run('[Q-01] 공압 바람 소리 + 센서 깜빡임 (즉시 정지)', 'danger', 'Q_AIR', null));
+$('qGrip').addEventListener('click', () => run('[Q-02] 그리퍼 미파지 알람 (수동 점검)', 'caution', 'Q_GRIP', null));
+$cases.addEventListener('click', e => {
+  const b = e.target.closest('.case');
+  if(!b) return;
+  const c = DATA[b.dataset.key];
+  run('[' + c.code + '] ' + c.title, c.level, b.dataset.key, null);
+});
+
+/* 입력창 전송 — form을 쓰지 않으므로 어떤 경우에도 페이지가 새로고침되지 않음 */
+function send(){
+  const v = $text.value.trim().slice(0, 200);
+  if(!v || busy) return;
+  let r;
+  try{ r = classify(v); }
+  catch(err){ r = {level:'general', key:'GENERAL', matched:[], negated:[], kbSuggest:null}; }
+  if(!r.kb && r.key === 'GENERAL'){
+    const st = matchSmall(v);
+    if(st){
+      $text.value = '';
+      if(st.kb){ runKB(v, st.kb); $text.blur(); return; }
+      addMsg(v, 'user'); addMsg(st.msg, 'bot'); logEvent('대화', '', '', v);
+      showTab('chat');
+      return;
+    }
+  }
+  if(r.kb){ $text.value = ''; $text.blur(); runKB(v, r.kb); return; }   // 안전 질문은 잠금 중에도 답함
+  if(locked){ $text.blur(); lockedNotice(); return; }
+  $text.value = '';
+  $text.blur();                                                  // 키보드를 내려 결과가 잘 보이게
+  run(v, r.level, r.key, r.matched, r.negated, r.kbSuggest);
+}
+$('sendBtn').addEventListener('click', send);
+/* 한글 입력 중(조합 중) Enter는 글자가 확정된 뒤 전송 */
+let composing = false, pendingSend = false;
+$text.addEventListener('compositionstart', () => { composing = true; });
+$text.addEventListener('compositionend', () => {
+  composing = false;
+  if(pendingSend){ pendingSend = false; setTimeout(send, 0); }
+});
+$text.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if(e.isComposing || composing){
+    pendingSend = true;
+    setTimeout(() => { if(pendingSend && !composing){ pendingSend = false; send(); } }, 150);
+    return;
+  }
+  send();
+});
+
+$('estopBtn').addEventListener('click', () => {
+  try{ if(window.__orbitFinish) window.__orbitFinish(); }catch(e){}
+  emergencyStop();
+});
+$('kbBtn').addEventListener('click', () => runKB('안전 백과 열기', '_index'));
+$('resetBtn').addEventListener('click', () => {
+  if(busy) return;
+  if(locked){ lockedNotice(); return; }
+  $chat.replaceChildren();
+  showEmpty();
+  setState('', '정상 대기');
+  $press.textContent = '0.50 MPa';
+  document.querySelectorAll('.case').forEach(b => b.classList.remove('active'));
+  current = null;
+  greet();
+  unread = 0; updBadge();
+  showTab('input');
+  VIEWS.input.scrollTop = 0;
+});
+
+function greet(){
+  addMsg('설비 이상 대응 지원 시스템입니다.\n상황 선택 탭의 버튼을 누르거나 아래에 증상을 입력하세요.\n위험하다고 느끼면 답을 기다리지 말고 먼저 비상정지하세요.', 'bot');
+}
+
+/* 시계 */
+function tick(){ $('clock').textContent = new Date().toTimeString().slice(0, 8); }
+tick();
+setInterval(tick, 1000);
+
+/* =========================================================
+   대응 기록 창
+   ========================================================= */
+const $logModal = $('logModal'), $logBody = $('logBody'), $logMsg = $('logMsg');
+const LV_KO = {danger:'위험', caution:'주의', general:'판단 불가'};
+const fmtTime = iso => { const d = new Date(iso); if(isNaN(d)) return ''; return String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0') + ' ' + d.toTimeString().slice(0, 8); };
+function getLogs(){ const l = load(LOG_KEY, []); return Array.isArray(l) ? l : []; }
+function showLogs(){
+  const logs = getLogs().slice().reverse();
+  $('logCount').textContent = logs.length + '건';
+  if(!logs.length){ $logBody.replaceChildren(el('div', 'logempty', '아직 기록이 없습니다.')); return; }
+  $logBody.replaceChildren(...logs.map(r => {
+    const it = el('div', 'logitem');
+    const lh = el('div', 'lh');
+    add(lh, el('span', 't', fmtTime(r.t)), el('span', 'ty', r.type || ''));
+    if(r.level) lh.appendChild(el('span', 'lv ' + r.level, LV_KO[r.level] || r.level));
+    if(r.code) lh.appendChild(el('span', 'cd', r.code));
+    add(it, lh, el('div', 'tx', r.text || ''));
+    return it;
+  }));
+}
+let lastFocus = null;
+function openLogs(){ lastFocus = document.activeElement; $logMsg.textContent = ''; $logMsg.className = 'pmsg'; showLogs(); $logModal.hidden = false; $logBody.scrollTop = 0; }
+function closeLogs(){ $logModal.hidden = true; $('logPw').value = ''; if(lastFocus && lastFocus.focus) try{ lastFocus.focus({preventScroll:true}); }catch(e){} }
+$('logBtn').addEventListener('click', openLogs);
+$('logClose').addEventListener('click', closeLogs);
+$logModal.addEventListener('click', e => { if(e.target === $logModal) closeLogs(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && !$logModal.hidden) closeLogs(); });
+$('logCsv').addEventListener('click', () => {
+  const logs = getLogs();
+  try{
+    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const rows = [['시각','구분','위험도','계열','내용']].concat(logs.map(r => [fmtTime(r.t), r.type, LV_KO[r.level] || '', r.code, r.text]));
+    const csv = '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+    a.download = 'ORBIT_대응기록_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    $logMsg.className = 'pmsg ok'; $logMsg.textContent = 'CSV 저장을 요청했습니다 (' + logs.length + '건). 파일이 안 받아지면 PC 브라우저에서 저장하세요.';
+  }catch(err){
+    $logMsg.className = 'pmsg err'; $logMsg.textContent = '이 화면에서는 파일 저장이 막혀 있습니다. 브라우저에서 직접 열어 주세요.';
+  }
+});
+function clearLogs(){
+  const pw = $('logPw');
+  if(!pw.value) return;
+  if(pw.value !== MAINT_PASSWORD){ $logMsg.className = 'pmsg err'; $logMsg.textContent = '기록은 보전 담당자 비밀번호로만 지울 수 있습니다.'; pw.value = ''; return; }
+  save(LOG_KEY, []); pw.value = ''; pw.blur();
+  $logMsg.className = 'pmsg ok'; $logMsg.textContent = '기록을 모두 지웠습니다.';
+  showLogs();
+}
+$('logClear').addEventListener('click', clearLogs);
+$('logPw').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); clearLogs(); } });
+
+/* =========================================================
+   휴대폰 키보드 대응 — 키보드가 올라와도 입력창·비상정지가 가려지지 않게
+   (iOS는 키보드가 화면을 덮기만 하므로 보이는 영역에 맞춰 앱 높이를 줄임)
+   ========================================================= */
+(function(){
+  const app = $('app'), vv = window.visualViewport;
+  if(!vv) return;
+  let raf = 0;
+  function fit(){
+    raf = 0;
+    const open = vv.height < window.innerHeight - 100;
+    if(open){
+      app.style.top = vv.offsetTop + 'px';
+      app.style.height = vv.height + 'px';
+      app.style.bottom = 'auto';
+    } else {
+      app.style.top = ''; app.style.height = ''; app.style.bottom = '';
+    }
+    document.body.classList.toggle('kb-open', open);
+  }
+  const req = () => { if(!raf) raf = requestAnimationFrame(fit); };
+  vv.addEventListener('resize', req);
+  vv.addEventListener('scroll', req);
+  window.addEventListener('orientationchange', () => setTimeout(fit, 300));
+})();
+
+/* =========================================================
+   시작 — 새로고침 전 잠금·비상정지 상태가 있으면 그대로 복원
+   ========================================================= */
+callTotal = Number(ST.callTotal) || 0;
+$callCount.textContent = callTotal + '건';
+showEmpty();
+greet();
+unread = 0; updBadge();
+if(ST.lock || ST.estop){
+  const lk = ST.lock, es = ST.estop, esAt = ST.estopAt;
+  try{
+    if(lk && !lk.estopOnly && DATA[lk.key] && LEVELS[lk.level]) render(lk.level, lk.key, lk.matched, lk.negated);
+    if(es) emergencyStop(esAt || '');
+    else if(lk && !locked) setLocked(true);
+    addMsg('새로고침 전의 잠금 상태를 그대로 복원했습니다. 보전 담당자 비밀번호로만 풀 수 있습니다.', 'bot', 'danger');
+    logEvent('잠금 복원', 'danger', lk && DATA[lk.key] ? DATA[lk.key].code : '', '새로고침 후 잠금 상태 유지');
+  }catch(err){
+    /* 저장된 상태가 깨졌으면 안전하게 비상정지 상태로 시작 */
+    ST.lock = null; saveState();
+    emergencyStop('');
+  }
+  showTab('result');
+}
+document.documentElement.classList.add('app-ok');
+
+} catch(err) {
+  /* 어떤 오류가 나도 로딩 화면에 갇히지 않게 */
+  try{ if(window.__orbitFinish) window.__orbitFinish(); }catch(e){}
+  try{ var t = document.getElementById('toast'); t.textContent = '화면을 불러오는 중 문제가 생겼습니다. 새로고침해 주세요.'; t.classList.add('show'); }catch(e){}
+  if(window.console) console.error(err);
+}
+</script>
+</body>
+</html>
